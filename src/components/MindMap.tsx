@@ -61,56 +61,27 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
         onMouseLeave={() => setShowTooltip(false)}
       >
         <Handle
-          type="source"
-          position={Position.Top}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-top-2"
-        />
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-top-2"
-        />
-
-        <Handle
-          type="source"
-          position={Position.Left}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-left-2"
-        />
-        <Handle
           type="target"
           position={Position.Left}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-left-2"
+          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
         />
-
         <div className="flex items-center justify-center space-x-3">
           {data.imageUrl && (
             <img src={data.imageUrl} alt={data.label} className="w-12 h-12 rounded-full" />
           )}
           <div className="flex-1 text-center">
             <div className="font-medium text-base">{data.label}</div>
+            {data.description && (
+              <div className="text-sm text-gray-500 mt-1 line-clamp-2">
+                {data.description}
+              </div>
+            )}
           </div>
         </div>
-
         <Handle
           type="source"
           position={Position.Right}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-right-2"
-        />
-        <Handle
-          type="target"
-          position={Position.Right}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-right-2"
-        />
-
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-bottom-2"
-        />
-        <Handle
-          type="target"
-          position={Position.Bottom}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-bottom-2"
+          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
         />
       </div>
     </>
@@ -156,7 +127,6 @@ const CustomEdge = ({
                 (sourceY + targetY) / 2
               }px)`,
               pointerEvents: 'none',
-              zIndex: 1000,
             }}
             className="bg-white rounded-md shadow-md p-4 text-sm border border-gray-200 w-64"
           >
@@ -352,13 +322,6 @@ function MindMap() {
     event.preventDefault();
     setSelectedEdge(edge);
     setIsConnectionModalOpen(true);
-  };
-
-  const handleEdgeDelete = () => {
-    if (!selectedEdge) return;
-    setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
-    setSelectedEdge(null);
-    setIsConnectionModalOpen(false);
   };
 
   const handleNodeEdit = ({ name, description }: { name: string; description: string }) => {
@@ -615,7 +578,6 @@ function MindMap() {
           setSelectedEdge(null);
         }}
         onSubmit={handleConnectionSubmit}
-        onDelete={handleEdgeDelete}
         initialData={selectedEdge?.data}
       />
 
