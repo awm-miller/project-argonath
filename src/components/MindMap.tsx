@@ -94,30 +94,16 @@ const CustomEdge = ({
   data,
 }: EdgeProps<CustomEdgeData>) => {
   const [hovering, setHovering] = useState(false);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const { setEdges } = useReactFlow();
   const edgePath = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
 
   const handleDoubleClick = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    setContextMenuPosition({ x: event.clientX, y: event.clientY });
-    setShowContextMenu(true);
+    const edge = { id, data };
+    const customEvent = new CustomEvent('editConnection', { detail: edge });
+    window.dispatchEvent(customEvent);
   };
-
-  const handleDelete = () => {
-    setEdges(edges => edges.filter(edge => edge.id !== id));
-    setShowContextMenu(false);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = () => setShowContextMenu(false);
-    if (showContextMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [showContextMenu]);
 
   return (
     <>
@@ -156,35 +142,6 @@ const CustomEdge = ({
           </div>
         </EdgeLabelRenderer>
       )}
-      {showContextMenu && (
-        <EdgeLabelRenderer>
-          <div
-            style={{
-              position: 'absolute',
-              transform: `translate(${contextMenuPosition.x}px, ${contextMenuPosition.y}px)`,
-              zIndex: 1000,
-            }}
-            className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="block w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
-              onClick={() => {
-                setShowContextMenu(false);
-                // Trigger edit modal through parent component
-              }}
-            >
-              Edit Connection
-            </button>
-            <button
-              className="block w-full px-4 py-2 text-left hover:bg-gray-50 text-sm text-red-600"
-              onClick={handleDelete}
-            >
-              Delete Connection
-            </button>
-          </div>
-        </EdgeLabelRenderer>
-      )}
     </>
   );
 };
@@ -214,6 +171,16 @@ function MindMap() {
   const [savedMindMaps, setSavedMindMaps] = useState<MindMap[]>([]);
   const [classifications, setClassifications] = useState<{ name: string }[]>([]);
   const { getNodes, getEdges } = useReactFlow();
+
+  useEffect(() => {
+    const handleEditConnection = (event: CustomEvent<Edge>) => {
+      setSelectedEdge(event.detail);
+      setIsConnectionModalOpen(true);
+    };
+
+    window.addEventListener('editConnection', handleEditConnection as EventListener);
+    return () => window.removeEventListener('editConnection', handleEditConnection as EventListener);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -347,20 +314,38 @@ function MindMap() {
   }, []);
 
   const handleConnectionSubmit = ({ description, strength }: { description: string; strength: 'strong' | 'weak' }) => {
-    if (!pendingConnection) return;
-
-    const edge: Edge<CustomEdgeData> = {
-      ...pendingConnection,
-      id: `${pendingConnection.source}-${pendingConnection.target}-${Date.now()}`,
-      type: 'custom',
-      data: {
-        strength,
-        description,
-      },
-    };
-
-    setEdges((eds) => addEdge(edge, eds));
-    setPendingConnection(null);
+    if (selectedEdge) {
+      // Update existing edge
+      setEdges((eds) =>
+        eds.map((edge) =>
+          edge.id === selectedEdge.id
+            ? {
+                ...edge,
+                data: {
+                  ...edge.data,
+                  description,
+                  strength,
+                },
+              }
+            : edge
+        )
+      );
+      setSelectedEdge(null);
+    } else if (pendingConnection) {
+      // Create new edge
+      const edge: Edge<CustomEdgeData> = {
+        ...pendingConnection,
+        id: `${pendingConnection.source}-${pendingConnection.target}-${Date.now()}`,
+        type: 'custom',
+        data: {
+          strength,
+          description,
+        },
+      };
+      setEdges((eds) => addEdge(edge, eds));
+      setPendingConnection(null);
+    }
+    setIsConnectionModalOpen(false);
   };
 
   const handleNodeDoubleClick = (event: React.MouseEvent, node: Node) => {
