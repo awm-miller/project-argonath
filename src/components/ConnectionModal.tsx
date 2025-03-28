@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 
 interface ConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { description: string; strength: 'strong' | 'weak' }) => void;
+  onDelete?: () => void;
+  initialData?: {
+    description?: string;
+    strength?: 'strong' | 'weak';
+  };
 }
 
-export function ConnectionModal({ isOpen, onClose, onSubmit }: ConnectionModalProps) {
-  const [description, setDescription] = useState('');
-  const [strength, setStrength] = useState<'strong' | 'weak'>('strong');
+export function ConnectionModal({ isOpen, onClose, onSubmit, onDelete, initialData }: ConnectionModalProps) {
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [strength, setStrength] = useState<'strong' | 'weak'>(initialData?.strength || 'strong');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +32,7 @@ export function ConnectionModal({ isOpen, onClose, onSubmit }: ConnectionModalPr
         <Dialog.Panel className="mx-auto max-w-sm rounded-lg bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-gray-200 p-4">
             <Dialog.Title className="text-lg font-semibold text-gray-900">
-              Define Connection
+              {initialData ? 'Edit Connection' : 'Define Connection'}
             </Dialog.Title>
             <button
               onClick={onClose}
@@ -80,20 +85,32 @@ export function ConnectionModal({ isOpen, onClose, onSubmit }: ConnectionModalPr
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Save Connection
-              </button>
+            <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700"
+                >
+                  <Trash2 size={16} className="mr-2" />
+                  Delete Connection
+                </button>
+              )}
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  {initialData ? 'Save Changes' : 'Create Connection'}
+                </button>
+              </div>
             </div>
           </form>
         </Dialog.Panel>

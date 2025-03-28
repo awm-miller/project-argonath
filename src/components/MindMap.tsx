@@ -71,11 +71,6 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
           )}
           <div className="flex-1 text-center">
             <div className="font-medium text-base">{data.label}</div>
-            {data.description && (
-              <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                {data.description}
-              </div>
-            )}
           </div>
         </div>
         <Handle
@@ -127,6 +122,7 @@ const CustomEdge = ({
                 (sourceY + targetY) / 2
               }px)`,
               pointerEvents: 'none',
+              zIndex: 1000,
             }}
             className="bg-white rounded-md shadow-md p-4 text-sm border border-gray-200 w-64"
           >
@@ -436,6 +432,13 @@ function MindMap() {
     }
   };
 
+  const handleEdgeDelete = () => {
+    if (!selectedEdge) return;
+    setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
+    setSelectedEdge(null);
+    setIsConnectionModalOpen(false);
+  };
+
   return (
     <div className="h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -578,6 +581,7 @@ function MindMap() {
           setSelectedEdge(null);
         }}
         onSubmit={handleConnectionSubmit}
+        onDelete={handleEdgeDelete}
         initialData={selectedEdge?.data}
       />
 
