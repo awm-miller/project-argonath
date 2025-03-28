@@ -63,7 +63,8 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
         <Handle
           type="target"
           position={Position.Left}
-          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
+          className="!w-6 !h-6 !bg-gray-600 !border-2 !border-white"
+          style={{ marginLeft: '-12px' }}
         />
         <div className="flex items-center justify-center space-x-3">
           {data.imageUrl && (
@@ -76,7 +77,8 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
         <Handle
           type="source"
           position={Position.Right}
-          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
+          className="!w-6 !h-6 !bg-gray-600 !border-2 !border-white"
+          style={{ marginRight: '-12px' }}
         />
       </div>
     </>
@@ -92,7 +94,30 @@ const CustomEdge = ({
   data,
 }: EdgeProps<CustomEdgeData>) => {
   const [hovering, setHovering] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const { setEdges } = useReactFlow();
   const edgePath = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+
+  const handleDoubleClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenuPosition({ x: event.clientX, y: event.clientY });
+    setShowContextMenu(true);
+  };
+
+  const handleDelete = () => {
+    setEdges(edges => edges.filter(edge => edge.id !== id));
+    setShowContextMenu(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => setShowContextMenu(false);
+    if (showContextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showContextMenu]);
 
   return (
     <>
@@ -104,6 +129,7 @@ const CustomEdge = ({
         stroke="transparent"
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        onDoubleClick={handleDoubleClick}
       />
       <path
         id={id}
@@ -127,6 +153,35 @@ const CustomEdge = ({
             className="bg-white rounded-md shadow-md p-4 text-sm border border-gray-200 w-64"
           >
             {data.description}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+      {showContextMenu && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(${contextMenuPosition.x}px, ${contextMenuPosition.y}px)`,
+              zIndex: 1000,
+            }}
+            className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="block w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+              onClick={() => {
+                setShowContextMenu(false);
+                // Trigger edit modal through parent component
+              }}
+            >
+              Edit Connection
+            </button>
+            <button
+              className="block w-full px-4 py-2 text-left hover:bg-gray-50 text-sm text-red-600"
+              onClick={handleDelete}
+            >
+              Delete Connection
+            </button>
           </div>
         </EdgeLabelRenderer>
       )}
@@ -314,12 +369,6 @@ function MindMap() {
     setIsEditModalOpen(true);
   };
 
-  const handleEdgeDoubleClick = (event: React.MouseEvent, edge: Edge) => {
-    event.preventDefault();
-    setSelectedEdge(edge);
-    setIsConnectionModalOpen(true);
-  };
-
   const handleNodeEdit = ({ name, description }: { name: string; description: string }) => {
     if (!selectedNode) return;
 
@@ -430,13 +479,6 @@ function MindMap() {
     } catch (error) {
       console.error('Error loading mind map:', error);
     }
-  };
-
-  const handleEdgeDelete = () => {
-    if (!selectedEdge) return;
-    setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
-    setSelectedEdge(null);
-    setIsConnectionModalOpen(false);
   };
 
   return (
@@ -560,7 +602,6 @@ function MindMap() {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               onNodeDoubleClick={handleNodeDoubleClick}
-              onEdgeDoubleClick={handleEdgeDoubleClick}
               fitView
               minZoom={0.2}
               maxZoom={1.5}
@@ -581,7 +622,6 @@ function MindMap() {
           setSelectedEdge(null);
         }}
         onSubmit={handleConnectionSubmit}
-        onDelete={handleEdgeDelete}
         initialData={selectedEdge?.data}
       />
 
