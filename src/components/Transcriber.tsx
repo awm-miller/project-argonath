@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Loader2, X, Copy, CheckCircle } from 'lucide-react';
 import type { TranscriptionResult } from '../models/TranscriptionResult';
-import { supabase } from '../lib/supabase';
 
 function Transcriber() {
   const [file, setFile] = useState<File | null>(null);
@@ -36,36 +35,14 @@ function Transcriber() {
     try {
       setIsUploading(true);
 
-      // Upload file to Supabase Storage
-      const fileName = `${Date.now()}-${selectedFile.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('transcriptions')
-        .upload(fileName, selectedFile);
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-      if (uploadError) throw uploadError;
-
-      // Create transcription job
-      const { data: jobData, error: jobError } = await supabase
-        .from('transcription_jobs')
-        .insert({
-          source_type: 'file',
-          file_path: uploadData.path
-        })
-        .select()
-        .single();
-
-      if (jobError) throw jobError;
-
-      // Start transcription
-      const response = await fetch('https://entirely-apt-tadpole.ngrok-free.app/transcribe/', {
+      // Send directly to transcription service
+      const response = await fetch('https://entirely-apt-tadpole.ngrok-free.app/transcribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          job_id: jobData.id,
-          file_url: `${supabase.storageUrl}/object/public/transcriptions/${uploadData.path}`
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -92,28 +69,11 @@ function Transcriber() {
     setIsUploading(true);
 
     try {
-      // Create transcription job
-      const { data: jobData, error: jobError } = await supabase
-        .from('transcription_jobs')
-        .insert({
-          source_type: 'youtube', // The backend will determine the actual source
-          source_url: videoUrl
-        })
-        .select()
-        .single();
-
-      if (jobError) throw jobError;
-
-      // Start transcription
-      const response = await fetch('https://entirely-apt-tadpole.ngrok-free.app/transcribe/social', {
+      const response = await fetch(`https://entirely-apt-tadpole.ngrok-free.app/weblink?url=${encodeURIComponent(videoUrl)}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          job_id: jobData.id,
-          url: videoUrl
-        }),
+          'accept': 'application/json'
+        }
       });
 
       if (!response.ok) {

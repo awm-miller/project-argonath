@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Mic, ChevronLeft, ChevronRight, Package, Search, Video } from 'lucide-react';
+import { Sun, Mic, ChevronLeft, ChevronRight, Package, Search, Video, Network } from 'lucide-react';
 
 interface Tool {
   id: string;
@@ -37,6 +37,14 @@ const tools: Tool[] = [
     color: 'from-green-400 to-emerald-500'
   },
   {
+    id: 'connections',
+    name: 'Connections',
+    description: 'Visualize and analyze relationships between profiles with our advanced link analysis builder.',
+    icon: <Network className="w-10 h-10" />,
+    path: '/connections',
+    color: 'from-purple-500 to-pink-500'
+  },
+  {
     id: 'ai-search',
     name: 'AI Search',
     description: 'Intelligent search through our vast knowledge base using advanced AI to find exactly what you need.',
@@ -58,29 +66,43 @@ function Home() {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isAnimating, setIsAnimating] = React.useState(false);
+  const [direction, setDirection] = React.useState<'next' | 'prev' | null>(null);
 
   const nextCard = () => {
     if (isAnimating) return;
     setIsAnimating(true);
+    setDirection('next');
     setCurrentIndex((prev) => (prev + 1) % tools.length);
-    setTimeout(() => setIsAnimating(false), 500);
+    setTimeout(() => {
+      setIsAnimating(false);
+      setDirection(null);
+    }, 500);
   };
 
   const prevCard = () => {
     if (isAnimating) return;
     setIsAnimating(true);
+    setDirection('prev');
     setCurrentIndex((prev) => (prev - 1 + tools.length) % tools.length);
-    setTimeout(() => setIsAnimating(false), 500);
+    setTimeout(() => {
+      setIsAnimating(false);
+      setDirection(null);
+    }, 500);
   };
+
+  React.useEffect(() => {
+    const interval = setInterval(nextCard, 5000);
+    return () => clearInterval(interval);
+  }, [currentIndex, isAnimating]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4 animate-fade-in">
             Argonath
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-600 animate-fade-in-delayed">
             Project Argonath is a best-in-class suite of tools and searches over the best knowledge in the field.
           </p>
         </div>
@@ -89,7 +111,7 @@ function Home() {
           {/* Navigation Buttons */}
           <button
             onClick={prevCard}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 bg-white p-2 rounded-full shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 z-10"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 bg-white p-2 rounded-full shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 z-10 transform transition-transform hover:scale-110"
             aria-label="Previous tool"
           >
             <ChevronLeft className="w-6 h-6 text-gray-600" />
@@ -97,7 +119,7 @@ function Home() {
 
           <button
             onClick={nextCard}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 bg-white p-2 rounded-full shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 z-10"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 bg-white p-2 rounded-full shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 z-10 transform transition-transform hover:scale-110"
             aria-label="Next tool"
           >
             <ChevronRight className="w-6 h-6 text-gray-600" />
@@ -113,7 +135,7 @@ function Home() {
               return (
                 <div
                   key={tool.id}
-                  className={`absolute w-full transition-all duration-500 ease-in-out ${
+                  className={`absolute w-full transition-all duration-500 ease-in-out transform-gpu ${
                     isActive
                       ? 'opacity-100 scale-100 translate-x-0 rotate-y-0 z-20'
                       : isPrev
@@ -125,12 +147,13 @@ function Home() {
                 >
                   <div
                     onClick={() => navigate(tool.path)}
-                    className="bg-white rounded-xl shadow-xl overflow-hidden cursor-pointer transform transition hover:-translate-y-1 hover:shadow-2xl"
+                    className="bg-white rounded-xl shadow-xl overflow-hidden cursor-pointer transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                   >
                     {/* Card Header */}
-                    <div className={`bg-gradient-to-r ${tool.color} p-6`}>
-                      <div className="flex justify-center">
-                        <div className="bg-white/10 backdrop-blur-lg rounded-full p-3">
+                    <div className={`bg-gradient-to-r ${tool.color} p-6 relative overflow-hidden`}>
+                      <div className="absolute inset-0 bg-white/10 backdrop-blur-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="flex justify-center relative z-10">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-full p-3 transform transition-transform hover:scale-110">
                           {React.cloneElement(tool.icon as React.ReactElement, {
                             className: "w-10 h-10 text-white"
                           })}
@@ -147,7 +170,7 @@ function Home() {
                         {tool.description}
                       </p>
                       <div className="mt-6 flex justify-center">
-                        <span className="inline-flex items-center text-sm text-blue-600 font-medium hover:text-blue-800">
+                        <span className="inline-flex items-center text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors">
                           Get Started
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </span>
@@ -167,8 +190,12 @@ function Home() {
                 onClick={() => {
                   if (!isAnimating) {
                     setIsAnimating(true);
+                    setDirection(index > currentIndex ? 'next' : 'prev');
                     setCurrentIndex(index);
-                    setTimeout(() => setIsAnimating(false), 500);
+                    setTimeout(() => {
+                      setIsAnimating(false);
+                      setDirection(null);
+                    }, 500);
                   }
                 }}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${

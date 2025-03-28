@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy } from 'lucide-react';
+import { ArrowLeft, Copy, Check, X, Network } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile, Citation } from '../types';
 
@@ -8,6 +8,7 @@ function ProfileView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [suggestedProfiles, setSuggestedProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
@@ -18,17 +19,41 @@ function ProfileView() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      // Fetch connected profiles if there are valid UUIDs in the connections array
+      if (profileData?.connections?.length) {
+        // Validate UUIDs before making the query
+        const validUUIDs = profileData.connections.filter(conn => {
+          try {
+            // Simple UUID validation regex
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conn);
+          } catch {
+            return false;
+          }
+        });
+
+        if (validUUIDs.length > 0) {
+          const { data: connectedProfiles, error: connectionsError } = await supabase
+            .from('profiles')
+            .select('id, name, short_description, image_url')
+            .in('id', validUUIDs);
+
+          if (!connectionsError && connectedProfiles) {
+            setSuggestedProfiles(connectedProfiles);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      navigate('/');
+      navigate('/sunlight');
     } finally {
       setLoading(false);
     }
@@ -73,7 +98,7 @@ function ProfileView() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Profile not found</h2>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/sunlight')}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
             ← Back to profiles
@@ -88,7 +113,7 @@ function ProfileView() {
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="flex justify-between items-center mb-6">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/sunlight')}
             className="flex items-center text-gray-600 hover:text-gray-800"
           >
             <ArrowLeft size={20} className="mr-2" />
@@ -124,7 +149,21 @@ function ProfileView() {
 
               <section>
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-gray-900">Short Description</h2>
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-semibold text-gray-900">Short Description</h2>
+                    <div className={`flex items-center px-3 py-1 rounded-full text-sm ${
+                      profile.short_description_lawyered
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {profile.short_description_lawyered ? (
+                        <Check className="w-4 h-4 mr-1" />
+                      ) : (
+                        <X className="w-4 h-4 mr-1" />
+                      )}
+                      Lawyered
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => copyTextOnly(profile.short_description)}
@@ -148,30 +187,25 @@ function ProfileView() {
                   className="text-gray-600"
                   dangerouslySetInnerHTML={{ __html: profile.short_description }}
                 />
-                {profile.citations?.[0]?.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium text-gray-700">Sources:</h3>
-                    <ul className="mt-2 space-y-1">
-                      {profile.citations[0].map((citation) => (
-                        <li key={citation.ref}>
-                          <a
-                            href={citation.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-800"
-                          >
-                            [{citation.ref}] {citation.text}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </section>
 
               <section>
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-gray-900">Summary</h2>
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-semibold text-gray-900">Summary</h2>
+                    <div className={`flex items-center px-3 py-1 rounded-full text-sm ${
+                      profile.summary_lawyered
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {profile.summary_lawyered ? (
+                        <Check className="w-4 h-4 mr-1" />
+                      ) : (
+                        <X className="w-4 h-4 mr-1" />
+                      )}
+                      Lawyered
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => copyTextOnly(profile.summary)}
@@ -195,30 +229,25 @@ function ProfileView() {
                   className="text-gray-600"
                   dangerouslySetInnerHTML={{ __html: profile.summary }}
                 />
-                {profile.citations?.[1]?.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium text-gray-700">Sources:</h3>
-                    <ul className="mt-2 space-y-1">
-                      {profile.citations[1].map((citation) => (
-                        <li key={citation.ref}>
-                          <a
-                            href={citation.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-800"
-                          >
-                            [{citation.ref}] {citation.text}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </section>
 
               <section>
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-gray-900">Detailed Record</h2>
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-semibold text-gray-900">Detailed Record</h2>
+                    <div className={`flex items-center px-3 py-1 rounded-full text-sm ${
+                      profile.detailed_record_lawyered
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {profile.detailed_record_lawyered ? (
+                        <Check className="w-4 h-4 mr-1" />
+                      ) : (
+                        <X className="w-4 h-4 mr-1" />
+                      )}
+                      Lawyered
+                    </div>
+                  </div>
                 </div>
                 {profile.iframe_url ? (
                   <div className="w-full aspect-[4/3] relative">
@@ -247,6 +276,37 @@ function ProfileView() {
                   ))}
                 </div>
               </section>
+
+              {suggestedProfiles.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Suggested Profiles</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {suggestedProfiles.map(suggested => (
+                      <div
+                        key={suggested.id}
+                        onClick={() => navigate(`/sunlight/profile/${suggested.id}`)}
+                        className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center space-x-4">
+                          {suggested.image_url && (
+                            <img
+                              src={suggested.image_url}
+                              alt={suggested.name}
+                              className="w-16 h-16 rounded-full object-cover"
+                            />
+                          )}
+                          <div>
+                            <h3 className="font-medium text-gray-900">{suggested.name}</h3>
+                            <p className="text-sm text-gray-500 line-clamp-2">
+                              {suggested.short_description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         </div>

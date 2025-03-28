@@ -1,0 +1,607 @@
+import React, { useCallback, useState, useEffect } from 'react';
+import ReactFlow, {
+  Node,
+  Edge,
+  Controls,
+  Background,
+  Connection,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  NodeProps,
+  EdgeProps,
+  Handle,
+  Position,
+  useReactFlow,
+  EdgeLabelRenderer,
+  NodeToolbar,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { ChevronDown, Search, Plus, Download, Upload, Save, Folder } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import type { Profile } from '../types';
+import { ConnectionModal } from './ConnectionModal';
+import { CustomNodeModal } from './CustomNodeModal';
+import { SaveMindMapModal } from './SaveMindMapModal';
+import { LoadMindMapModal } from './LoadMindMapModal';
+import { EditNodeModal } from './EditNodeModal';
+
+interface CustomNodeData {
+  label: string;
+  type: 'profile' | 'custom';
+  imageUrl?: string;
+  description?: string;
+}
+
+interface CustomEdgeData {
+  strength: 'strong' | 'weak';
+  description?: string;
+}
+
+interface MindMap {
+  id: string;
+  name: string;
+  classification: string;
+  created_at: string;
+}
+
+const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <>
+      <NodeToolbar isVisible={showTooltip && !!data.description}>
+        <div className="bg-white rounded-md shadow-lg border border-gray-200 p-4 w-64">
+          <div className="text-sm text-gray-600">{data.description}</div>
+        </div>
+      </NodeToolbar>
+      <div 
+        className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 min-w-[150px]"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
+        />
+        <div className="flex items-center justify-center space-x-2">
+          {data.imageUrl && (
+            <img src={data.imageUrl} alt={data.label} className="w-8 h-8 rounded-full" />
+          )}
+          <div className="flex-1 text-center">
+            <div className="font-medium text-sm">{data.label}</div>
+          </div>
+        </div>
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
+        />
+      </div>
+    </>
+  );
+};
+
+const CustomEdge = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  data,
+}: EdgeProps<CustomEdgeData>) => {
+  const [hovering, setHovering] = useState(false);
+  const edgePath = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+
+  return (
+    <>
+      <path
+        className="react-flow__edge-hit-area"
+        d={edgePath}
+        strokeWidth={25}
+        fill="none"
+        stroke="transparent"
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+      />
+      <path
+        id={id}
+        className="react-flow__edge-path"
+        d={edgePath}
+        strokeWidth={2}
+        stroke="#666"
+        strokeDasharray={data?.strength === 'weak' ? '5,5' : undefined}
+      />
+      {hovering && data?.description && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px, ${
+                (sourceY + targetY) / 2
+              }px)`,
+              pointerEvents: 'none',
+            }}
+            className="bg-white rounded-md shadow-md p-4 text-sm border border-gray-200 w-64"
+          >
+            {data.description}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+};
+
+const nodeTypes = {
+  custom: CustomNode,
+};
+
+const edgeTypes = {
+  custom: CustomEdge,
+};
+
+function MindMap() {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [isCustomNodeModalOpen, setIsCustomNodeModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
+  const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [savedMindMaps, setSavedMindMaps] = useState<MindMap[]>([]);
+  const [classifications, setClassifications] = useState<{ name: string }[]>([]);
+  const { getNodes, getEdges } = useReactFlow();
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setIsActionsOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    fetchClassifications();
+    fetchSavedMindMaps();
+  }, []);
+
+  const fetchClassifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_classifications')
+        .select('name')
+        .order('level', { ascending: true });
+
+      if (error) throw error;
+      setClassifications(data || []);
+    } catch (error) {
+      console.error('Error fetching classifications:', error);
+    }
+  };
+
+  const fetchSavedMindMaps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mindmaps')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedMindMaps(data || []);
+    } catch (error) {
+      console.error('Error fetching mind maps:', error);
+    }
+  };
+
+  const handleSearch = async (term: string) => {
+    setSearchTerm(term);
+    if (term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, short_description, image_url')
+        .ilike('name', `%${term}%`)
+        .limit(5);
+
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error searching profiles:', error);
+    }
+  };
+
+  const calculateNodePosition = () => {
+    const existingNodes = getNodes();
+    if (!existingNodes.length) {
+      return { x: window.innerWidth / 2 - 75, y: window.innerHeight / 2 - 25 };
+    }
+
+    const center = existingNodes.reduce(
+      (acc, node) => ({
+        x: acc.x + node.position.x,
+        y: acc.y + node.position.y
+      }),
+      { x: 0, y: 0 }
+    );
+    
+    const avgX = center.x / existingNodes.length;
+    const avgY = center.y / existingNodes.length;
+
+    const angle = Math.random() * 2 * Math.PI;
+    const distance = 150 + Math.random() * 50;
+    
+    return {
+      x: avgX + Math.cos(angle) * distance,
+      y: avgY + Math.sin(angle) * distance
+    };
+  };
+
+  const addNode = (profile: Profile) => {
+    const position = calculateNodePosition();
+
+    const newNode: Node<CustomNodeData> = {
+      id: profile.id,
+      type: 'custom',
+      position,
+      data: {
+        label: profile.name,
+        type: 'profile',
+        imageUrl: profile.image_url,
+        description: profile.short_description,
+      },
+    };
+
+    setNodes((nds) => [...nds, newNode]);
+    setSearchTerm('');
+    setSearchResults([]);
+  };
+
+  const handleCustomNodeSubmit = ({ name, description }: { name: string; description: string }) => {
+    const position = calculateNodePosition();
+
+    const newNode: Node<CustomNodeData> = {
+      id: `custom-${Date.now()}`,
+      type: 'custom',
+      position,
+      data: {
+        label: name,
+        type: 'custom',
+        description,
+      },
+    };
+
+    setNodes((nds) => [...nds, newNode]);
+    setIsCustomNodeModalOpen(false);
+  };
+
+  const onConnect = useCallback((params: Connection) => {
+    setPendingConnection(params);
+    setIsConnectionModalOpen(true);
+  }, []);
+
+  const handleConnectionSubmit = ({ description, strength }: { description: string; strength: 'strong' | 'weak' }) => {
+    if (!pendingConnection) return;
+
+    const edge: Edge<CustomEdgeData> = {
+      ...pendingConnection,
+      id: `${pendingConnection.source}-${pendingConnection.target}-${Date.now()}`,
+      type: 'custom',
+      data: {
+        strength,
+        description,
+      },
+    };
+
+    setEdges((eds) => addEdge(edge, eds));
+    setPendingConnection(null);
+  };
+
+  const handleNodeDoubleClick = (event: React.MouseEvent, node: Node) => {
+    event.preventDefault();
+    setSelectedNode(node);
+    setIsEditModalOpen(true);
+  };
+
+  const handleNodeEdit = ({ name, description }: { name: string; description: string }) => {
+    if (!selectedNode) return;
+
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === selectedNode.id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                label: name,
+                description,
+              },
+            }
+          : node
+      )
+    );
+  };
+
+  const handleNodeDelete = () => {
+    if (!selectedNode) return;
+    setNodes((nds) => nds.filter((node) => node.id !== selectedNode.id));
+    setEdges((eds) => eds.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id));
+    setSelectedNode(null);
+  };
+
+  const exportToJSON = () => {
+    const data = {
+      nodes: getNodes(),
+      edges: getEdges()
+    };
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mindmap.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    setIsActionsOpen(false);
+  };
+
+  const importFromJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.nodes && data.edges) {
+          setNodes(data.nodes);
+          setEdges(data.edges);
+        }
+      } catch (error) {
+        console.error('Error importing data:', error);
+      }
+    };
+    reader.readAsText(file);
+    setIsActionsOpen(false);
+  };
+
+  const handleSaveMindMap = async ({ name, classification, overwriteId }: { name: string; classification: string; overwriteId?: string }) => {
+    try {
+      if (overwriteId) {
+        const { error } = await supabase
+          .from('mindmaps')
+          .update({
+            data: { nodes, edges },
+            classification
+          })
+          .eq('id', overwriteId);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('mindmaps')
+          .insert([
+            {
+              name,
+              classification,
+              data: { nodes, edges },
+              creator: (await supabase.auth.getUser()).data.user?.id
+            }
+          ]);
+
+        if (error) throw error;
+      }
+      
+      fetchSavedMindMaps();
+    } catch (error) {
+      console.error('Error saving mind map:', error);
+    }
+  };
+
+  const handleLoadMindMap = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('mindmaps')
+        .select('data')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      if (data?.data) {
+        setNodes(data.data.nodes);
+        setEdges(data.data.edges);
+      }
+    } catch (error) {
+      console.error('Error loading mind map:', error);
+    }
+  };
+
+  return (
+    <div className="h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="flex-1 max-w-md relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search Sunlight profiles..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              {searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200">
+                  {searchResults.map((profile) => (
+                    <div
+                      key={profile.id}
+                      className="p-2 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => addNode(profile)}
+                    >
+                      <div className="flex items-center">
+                        {profile.image_url && (
+                          <img
+                            src={profile.image_url}
+                            alt={profile.name}
+                            className="w-8 h-8 rounded-full mr-2"
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium">{profile.name}</div>
+                          <div className="text-sm text-gray-500 truncate">
+                            {profile.short_description}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsCustomNodeModalOpen(true)}
+                className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                <Plus size={20} className="mr-2" />
+                Add Custom Node
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsActionsOpen(!isActionsOpen);
+                  }}
+                  className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Actions
+                  <ChevronDown size={20} className="ml-2" />
+                </button>
+
+                {isActionsOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+                    <button
+                      onClick={exportToJSON}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
+                    >
+                      <Download size={16} className="mr-2" />
+                      Export to JSON
+                    </button>
+                    <label className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm cursor-pointer block flex items-center">
+                      <Upload size={16} className="mr-2" />
+                      Import from JSON
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={importFromJSON}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      onClick={() => {
+                        setIsActionsOpen(false);
+                        setIsSaveModalOpen(true);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
+                    >
+                      <Save size={16} className="mr-2" />
+                      Save to Cloud
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsActionsOpen(false);
+                        setIsLoadModalOpen(true);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
+                    >
+                      <Folder size={16} className="mr-2" />
+                      Load from Cloud
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: 'calc(100vh - 200px)' }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodeDoubleClick={handleNodeDoubleClick}
+              fitView
+              minZoom={0.2}
+              maxZoom={1.5}
+              defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            >
+              <Background />
+              <Controls />
+            </ReactFlow>
+          </div>
+        </div>
+      </div>
+
+      <ConnectionModal
+        isOpen={isConnectionModalOpen}
+        onClose={() => {
+          setIsConnectionModalOpen(false);
+          setPendingConnection(null);
+        }}
+        onSubmit={handleConnectionSubmit}
+      />
+
+      <CustomNodeModal
+        isOpen={isCustomNodeModalOpen}
+        onClose={() => setIsCustomNodeModalOpen(false)}
+        onSubmit={handleCustomNodeSubmit}
+      />
+
+      <SaveMindMapModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        onSubmit={handleSaveMindMap}
+        classifications={classifications}
+        existingMaps={savedMindMaps}
+      />
+
+      <LoadMindMapModal
+        isOpen={isLoadModalOpen}
+        onClose={() => setIsLoadModalOpen(false)}
+        onSelect={handleLoadMindMap}
+        mindMaps={savedMindMaps}
+      />
+
+      <EditNodeModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedNode(null);
+        }}
+        onSave={handleNodeEdit}
+        onDelete={handleNodeDelete}
+        initialData={selectedNode?.data ? {
+          name: selectedNode.data.label,
+          description: selectedNode.data.description
+        } : { name: '', description: '' }}
+      />
+    </div>
+  );
+}
+
+export default MindMap;
