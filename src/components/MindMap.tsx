@@ -61,27 +61,10 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
         onMouseLeave={() => setShowTooltip(false)}
       >
         <Handle
-          type="source"
-          position={Position.Top}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-top-2"
-        />
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-top-2"
-        />
-
-        <Handle
-          type="source"
-          position={Position.Left}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-left-2"
-        />
-        <Handle
           type="target"
           position={Position.Left}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-left-2"
+          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
         />
-
         <div className="flex items-center justify-center space-x-3">
           {data.imageUrl && (
             <img src={data.imageUrl} alt={data.label} className="w-12 h-12 rounded-full" />
@@ -90,27 +73,10 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
             <div className="font-medium text-base">{data.label}</div>
           </div>
         </div>
-
         <Handle
           type="source"
           position={Position.Right}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-right-2"
-        />
-        <Handle
-          type="target"
-          position={Position.Right}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-right-2"
-        />
-
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-bottom-2"
-        />
-        <Handle
-          type="target"
-          position={Position.Bottom}
-          className="!w-4 !h-4 !bg-gray-600 !border-2 !border-white !-bottom-2"
+          className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
         />
       </div>
     </>
