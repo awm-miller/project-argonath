@@ -56,7 +56,7 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
         </div>
       </NodeToolbar>
       <div 
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 min-w-[150px]"
+        className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-w-[200px] min-h-[100px] flex flex-col justify-center"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -65,12 +65,12 @@ const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
           position={Position.Left}
           className="!w-3 !h-3 !bg-gray-600 !border-2 !border-white"
         />
-        <div className="flex items-center justify-center space-x-2">
+        <div className="flex items-center justify-center space-x-3">
           {data.imageUrl && (
-            <img src={data.imageUrl} alt={data.label} className="w-8 h-8 rounded-full" />
+            <img src={data.imageUrl} alt={data.label} className="w-12 h-12 rounded-full" />
           )}
           <div className="flex-1 text-center">
-            <div className="font-medium text-sm">{data.label}</div>
+            <div className="font-medium text-base">{data.label}</div>
           </div>
         </div>
         <Handle
@@ -122,6 +122,7 @@ const CustomEdge = ({
                 (sourceY + targetY) / 2
               }px)`,
               pointerEvents: 'none',
+              zIndex: 1000,
             }}
             className="bg-white rounded-md shadow-md p-4 text-sm border border-gray-200 w-64"
           >
@@ -153,6 +154,7 @@ function MindMap() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge<CustomEdgeData> | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [savedMindMaps, setSavedMindMaps] = useState<MindMap[]>([]);
   const [classifications, setClassifications] = useState<{ name: string }[]>([]);
@@ -223,7 +225,7 @@ function MindMap() {
   const calculateNodePosition = () => {
     const existingNodes = getNodes();
     if (!existingNodes.length) {
-      return { x: window.innerWidth / 2 - 75, y: window.innerHeight / 2 - 25 };
+      return { x: window.innerWidth / 2 - 100, y: window.innerHeight / 2 - 50 };
     }
 
     const center = existingNodes.reduce(
@@ -238,7 +240,7 @@ function MindMap() {
     const avgY = center.y / existingNodes.length;
 
     const angle = Math.random() * 2 * Math.PI;
-    const distance = 150 + Math.random() * 50;
+    const distance = 250;
     
     return {
       x: avgX + Math.cos(angle) * distance,
@@ -310,6 +312,19 @@ function MindMap() {
     event.preventDefault();
     setSelectedNode(node);
     setIsEditModalOpen(true);
+  };
+
+  const handleEdgeDoubleClick = (event: React.MouseEvent, edge: Edge) => {
+    event.preventDefault();
+    setSelectedEdge(edge);
+    setIsConnectionModalOpen(true);
+  };
+
+  const handleEdgeDelete = () => {
+    if (!selectedEdge) return;
+    setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
+    setSelectedEdge(null);
+    setIsConnectionModalOpen(false);
   };
 
   const handleNodeEdit = ({ name, description }: { name: string; description: string }) => {
@@ -545,6 +560,7 @@ function MindMap() {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               onNodeDoubleClick={handleNodeDoubleClick}
+              onEdgeDoubleClick={handleEdgeDoubleClick}
               fitView
               minZoom={0.2}
               maxZoom={1.5}
@@ -562,8 +578,11 @@ function MindMap() {
         onClose={() => {
           setIsConnectionModalOpen(false);
           setPendingConnection(null);
+          setSelectedEdge(null);
         }}
         onSubmit={handleConnectionSubmit}
+        onDelete={handleEdgeDelete}
+        initialData={selectedEdge?.data}
       />
 
       <CustomNodeModal
