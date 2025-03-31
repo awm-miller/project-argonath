@@ -51,14 +51,11 @@
 }
 
 .react-flow__handle {
-  width: 8px !important;
-  height: 8px !important;
+  width: 16px !important;
+  height: 16px !important;
   background: #555 !important;
   border: 2px solid white !important;
-}
-
-.react-flow__handle:hover {
-  transform: scale(1.2);
+  transition: none !important;
 }
 
 /* Remove animation classes from tooltips */

@@ -17,7 +17,15 @@ import ReactFlow, {
   NodeToolbar,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { ChevronDown, Search, Plus, Download, Upload, Save, Folder } from 'lucide-react';
+import {
+  ChevronDown,
+  Search,
+  Plus,
+  Download,
+  Upload,
+  Save,
+  Folder,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { ConnectionModal } from './ConnectionModal';
@@ -46,42 +54,46 @@ interface MindMap {
 }
 
 const CustomNode = ({ data, id }: NodeProps<CustomNodeData>) => {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [hovering, setHovering] = useState(false);
 
   return (
-    <>
-      <NodeToolbar isVisible={showTooltip && !!data.description}>
-        <div className="bg-white rounded-md shadow-lg border border-gray-200 p-4 w-64">
-          <div className="text-sm text-gray-600">{data.description}</div>
+    <div 
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative"
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
+      <Handle 
+        id="target" 
+        type="target" 
+        position={Position.Bottom} 
+        className="opacity-0 w-2 h-2 hover:w-3 hover:h-3"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+      />
+      <div className="flex items-center justify-center space-x-3">
+        {data.imageUrl && (
+          <img
+            src={data.imageUrl}
+            alt={data.label}
+            className="w-12 h-12 rounded-full"
+          />
+        )}
+        <div className="text-center">
+          <div className="font-medium">{data.label}</div>
         </div>
-      </NodeToolbar>
-      <div 
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-w-[200px] min-h-[100px] flex flex-col justify-center"
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="!w-6 !h-6 !bg-gray-600 !border-2 !border-white"
-          style={{ marginLeft: '-12px' }}
-        />
-        <div className="flex items-center justify-center space-x-3">
-          {data.imageUrl && (
-            <img src={data.imageUrl} alt={data.label} className="w-12 h-12 rounded-full" />
-          )}
-          <div className="flex-1 text-center">
-            <div className="font-medium text-base">{data.label}</div>
-          </div>
-        </div>
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!w-6 !h-6 !bg-gray-600 !border-2 !border-white"
-          style={{ marginRight: '-12px' }}
-        />
       </div>
-    </>
+      <Handle 
+        id="source" 
+        type="source" 
+        position={Position.Bottom} 
+        className="w-2 h-2"
+        style={{ bottom: '-8px' }}
+      />
+      {hovering && data.description && (
+        <div className="absolute z-10 bg-white rounded-md shadow-md p-4 text-sm border border-gray-200 w-64 -translate-x-1/2 left-1/2 mt-2">
+          {data.description}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -130,9 +142,9 @@ const CustomEdge = ({
           <div
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px, ${
-                (sourceY + targetY) / 2
-              }px)`,
+              transform: `translate(-50%, -50%) translate(${
+                (sourceX + targetX) / 2
+              }px, ${(sourceY + targetY) / 2}px)`,
               pointerEvents: 'none',
               zIndex: 1000,
             }}
@@ -164,12 +176,20 @@ function MindMap() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
-  const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<Edge<CustomEdgeData> | null>(null);
+  const [pendingConnection, setPendingConnection] = useState<Connection | null>(
+    null
+  );
+  const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(
+    null
+  );
+  const [selectedEdge, setSelectedEdge] = useState<Edge<CustomEdgeData> | null>(
+    null
+  );
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [savedMindMaps, setSavedMindMaps] = useState<MindMap[]>([]);
-  const [classifications, setClassifications] = useState<{ name: string }[]>([]);
+  const [classifications, setClassifications] = useState<{ name: string }[]>(
+    []
+  );
   const { getNodes, getEdges } = useReactFlow();
 
   useEffect(() => {
@@ -178,8 +198,15 @@ function MindMap() {
       setIsConnectionModalOpen(true);
     };
 
-    window.addEventListener('editConnection', handleEditConnection as EventListener);
-    return () => window.removeEventListener('editConnection', handleEditConnection as EventListener);
+    window.addEventListener(
+      'editConnection',
+      handleEditConnection as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'editConnection',
+        handleEditConnection as EventListener
+      );
   }, []);
 
   useEffect(() => {
@@ -253,20 +280,20 @@ function MindMap() {
     const center = existingNodes.reduce(
       (acc, node) => ({
         x: acc.x + node.position.x,
-        y: acc.y + node.position.y
+        y: acc.y + node.position.y,
       }),
       { x: 0, y: 0 }
     );
-    
+
     const avgX = center.x / existingNodes.length;
     const avgY = center.y / existingNodes.length;
 
     const angle = Math.random() * 2 * Math.PI;
     const distance = 250;
-    
+
     return {
       x: avgX + Math.cos(angle) * distance,
-      y: avgY + Math.sin(angle) * distance
+      y: avgY + Math.sin(angle) * distance,
     };
   };
 
@@ -290,7 +317,13 @@ function MindMap() {
     setSearchResults([]);
   };
 
-  const handleCustomNodeSubmit = ({ name, description }: { name: string; description: string }) => {
+  const handleCustomNodeSubmit = ({
+    name,
+    description,
+  }: {
+    name: string;
+    description: string;
+  }) => {
     const position = calculateNodePosition();
 
     const newNode: Node<CustomNodeData> = {
@@ -313,7 +346,13 @@ function MindMap() {
     setIsConnectionModalOpen(true);
   }, []);
 
-  const handleConnectionSubmit = ({ description, strength }: { description: string; strength: 'strong' | 'weak' }) => {
+  const handleConnectionSubmit = ({
+    description,
+    strength,
+  }: {
+    description: string;
+    strength: 'strong' | 'weak';
+  }) => {
     if (selectedEdge) {
       // Update existing edge
       setEdges((eds) =>
@@ -335,7 +374,9 @@ function MindMap() {
       // Create new edge
       const edge: Edge<CustomEdgeData> = {
         ...pendingConnection,
-        id: `${pendingConnection.source}-${pendingConnection.target}-${Date.now()}`,
+        id: `${pendingConnection.source}-${
+          pendingConnection.target
+        }-${Date.now()}`,
         type: 'custom',
         data: {
           strength,
@@ -354,7 +395,13 @@ function MindMap() {
     setIsEditModalOpen(true);
   };
 
-  const handleNodeEdit = ({ name, description }: { name: string; description: string }) => {
+  const handleNodeEdit = ({
+    name,
+    description,
+  }: {
+    name: string;
+    description: string;
+  }) => {
     if (!selectedNode) return;
 
     setNodes((nds) =>
@@ -376,14 +423,19 @@ function MindMap() {
   const handleNodeDelete = () => {
     if (!selectedNode) return;
     setNodes((nds) => nds.filter((node) => node.id !== selectedNode.id));
-    setEdges((eds) => eds.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id));
+    setEdges((eds) =>
+      eds.filter(
+        (edge) =>
+          edge.source !== selectedNode.id && edge.target !== selectedNode.id
+      )
+    );
     setSelectedNode(null);
   };
 
   const exportToJSON = () => {
     const data = {
       nodes: getNodes(),
-      edges: getEdges()
+      edges: getEdges(),
     };
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -415,33 +467,39 @@ function MindMap() {
     setIsActionsOpen(false);
   };
 
-  const handleSaveMindMap = async ({ name, classification, overwriteId }: { name: string; classification: string; overwriteId?: string }) => {
+  const handleSaveMindMap = async ({
+    name,
+    classification,
+    overwriteId,
+  }: {
+    name: string;
+    classification: string;
+    overwriteId?: string;
+  }) => {
     try {
       if (overwriteId) {
         const { error } = await supabase
           .from('mindmaps')
           .update({
             data: { nodes, edges },
-            classification
+            classification,
           })
           .eq('id', overwriteId);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('mindmaps')
-          .insert([
-            {
-              name,
-              classification,
-              data: { nodes, edges },
-              creator: (await supabase.auth.getUser()).data.user?.id
-            }
-          ]);
+        const { error } = await supabase.from('mindmaps').insert([
+          {
+            name,
+            classification,
+            data: { nodes, edges },
+            creator: (await supabase.auth.getUser()).data.user?.id,
+          },
+        ]);
 
         if (error) throw error;
       }
-      
+
       fetchSavedMindMaps();
     } catch (error) {
       console.error('Error saving mind map:', error);
@@ -473,7 +531,10 @@ function MindMap() {
           <div className="p-4 border-b border-gray-200 flex justify-between items-center">
             <div className="flex-1 max-w-md relative">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                <Search
+                  className="absolute left-3 top-2.5 text-gray-400"
+                  size={20}
+                />
                 <input
                   type="text"
                   placeholder="Search Sunlight profiles..."
@@ -591,9 +652,12 @@ function MindMap() {
               minZoom={0.2}
               maxZoom={1.5}
               defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+              nodesDraggable={true}
+              nodesConnectable={true}
+              elementsSelectable={true}
             >
-              <Background />
               <Controls />
+              <Background />
             </ReactFlow>
           </div>
         </div>
@@ -639,10 +703,14 @@ function MindMap() {
         }}
         onSave={handleNodeEdit}
         onDelete={handleNodeDelete}
-        initialData={selectedNode?.data ? {
-          name: selectedNode.data.label,
-          description: selectedNode.data.description
-        } : { name: '', description: '' }}
+        initialData={
+          selectedNode?.data
+            ? {
+                name: selectedNode.data.label,
+                description: selectedNode.data.description,
+              }
+            : { name: '', description: '' }
+        }
       />
     </div>
   );
