@@ -14,9 +14,6 @@ import ReactFlow, {
   Position,
   useReactFlow,
   EdgeLabelRenderer,
-  NodeToolbar,
-  getNodesBounds,
-  getViewportForBounds,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import {
@@ -27,6 +24,7 @@ import {
   Upload,
   Save,
   Folder,
+  FileCode,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
@@ -35,7 +33,6 @@ import { CustomNodeModal } from './CustomNodeModal';
 import { SaveMindMapModal } from './SaveMindMapModal';
 import { LoadMindMapModal } from './LoadMindMapModal';
 import { EditNodeModal } from './EditNodeModal';
-import { toPng } from 'html-to-image';
 
 interface CustomNodeData {
   label: string;
@@ -192,9 +189,7 @@ function MindMap() {
   );
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [savedMindMaps, setSavedMindMaps] = useState<MindMap[]>([]);
-  const [classifications, setClassifications] = useState<{ name: string }[]>(
-    []
-  );
+  const [classifications, setClassifications] = useState<{ name: string }[]>([]);
   const { getNodes, getEdges } = useReactFlow();
 
   useEffect(() => {
@@ -359,7 +354,6 @@ function MindMap() {
     strength: 'strong' | 'weak';
   }) => {
     if (selectedEdge) {
-      // Update existing edge
       setEdges((eds) =>
         eds.map((edge) =>
           edge.id === selectedEdge.id
@@ -376,7 +370,6 @@ function MindMap() {
       );
       setSelectedEdge(null);
     } else if (pendingConnection) {
-      // Create new edge
       const edge: Edge<CustomEdgeData> = {
         ...pendingConnection,
         id: `${pendingConnection.source}-${
@@ -460,6 +453,120 @@ function MindMap() {
     setIsActionsOpen(false);
   };
 
+  const exportToHTML = () => {
+    const flowData = {
+      nodes: getNodes(),
+      edges: getEdges(),
+    };
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Mind Map Export</title>
+        <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+        <script src="https://unpkg.com/reactflow@11.10.4/dist/reactflow.min.js"></script>
+        <link href="https://unpkg.com/reactflow@11.10.4/dist/style.css" rel="stylesheet">
+        <style>
+          .react-flow__node {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .react-flow__handle {
+            width: 8px;
+            height: 8px;
+            background: #555;
+            border: 2px solid white;
+          }
+          .react-flow__edge-path {
+            stroke: #666;
+            stroke-width: 2;
+          }
+          .custom-node {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .custom-node img {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            margin-right: 0.75rem;
+          }
+          .custom-node-content {
+            display: flex;
+            align-items: center;
+          }
+          .custom-node-label {
+            font-weight: 500;
+            color: #111827;
+          }
+          .edge-label {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+          }
+        </style>
+      </head>
+      <body style="margin:0;width:100vw;height:100vh;">
+        <div id="root" style="width:100%;height:100%;"></div>
+        <script>
+          const { ReactFlow, Background, Controls } = ReactFlowRenderer;
+          
+          const flowData = ${JSON.stringify(flowData)};
+          
+          function CustomNode({ data }) {
+            return React.createElement('div', { className: 'custom-node' },
+              React.createElement('div', { className: 'custom-node-content' },
+                data.imageUrl && React.createElement('img', { src: data.imageUrl, alt: data.label }),
+                React.createElement('div', { className: 'custom-node-label' }, data.label)
+              )
+            );
+          }
+          
+          const nodeTypes = {
+            custom: CustomNode
+          };
+          
+          function Flow() {
+            return React.createElement(ReactFlow, {
+              nodes: flowData.nodes,
+              edges: flowData.edges,
+              nodeTypes: nodeTypes,
+              fitView: true,
+              attributionPosition: 'bottom-right'
+            },
+              React.createElement(Background),
+              React.createElement(Controls)
+            );
+          }
+          
+          ReactDOM.createRoot(document.getElementById('root')).render(
+            React.createElement(Flow)
+          );
+        </script>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mindmap.html';
+    link.click();
+    URL.revokeObjectURL(url);
+    setIsActionsOpen(false);
+  };
+
   const importFromJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -490,11 +597,17 @@ function MindMap() {
     overwriteId?: string;
   }) => {
     try {
+      const data = {
+        nodes: getNodes(),
+        edges: getEdges(),
+      };
+
       if (overwriteId) {
         const { error } = await supabase
           .from('mindmaps')
           .update({
-            data: { nodes, edges },
+            name,
+            data,
             classification,
           })
           .eq('id', overwriteId);
@@ -505,7 +618,7 @@ function MindMap() {
           {
             name,
             classification,
-            data: { nodes, edges },
+            data,
             creator: (await supabase.auth.getUser()).data.user?.id,
           },
         ]);
@@ -537,37 +650,71 @@ function MindMap() {
     }
   };
 
-  const downloadImage = (dataUrl: string) => {
-    const a = document.createElement('a');
-    a.setAttribute('download', 'mindmap.png');
-    a.setAttribute('href', dataUrl);
-    a.click();
-  };
+  const handleDeleteMindMap = async (id: string) => {
+    try {
+      // Get current user first
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        throw new Error('Failed to get current user');
+      }
 
-  const handleDownloadImage = () => {
-    const imageWidth = 1920; // Higher resolution
-    const imageHeight = 1080;
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
 
-    const nodesBounds = getNodesBounds(getNodes());
-    const viewport = getViewportForBounds(
-      nodesBounds,
-      imageWidth,
-      imageHeight,
-      0.5,
-      2
-    );
+      // Verify the mind map exists and check permissions
+      const { data: mindMap, error: fetchError } = await supabase
+        .from('mindmaps')
+        .select('creator')
+        .eq('id', id)
+        .single();
 
-    toPng(document.querySelector('.react-flow__viewport') as HTMLElement, {
-      backgroundColor: '#ffffff',
-      width: imageWidth,
-      height: imageHeight,
-      style: {
-        width: imageWidth,
-        height: imageHeight,
-        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-      },
-    }).then(downloadImage);
-    setIsActionsOpen(false);
+      if (fetchError) {
+        throw new Error('Failed to fetch mind map');
+      }
+
+      if (!mindMap) {
+        throw new Error('Mind map not found');
+      }
+
+      // Convert both IDs to strings for comparison
+      const creatorId = String(mindMap.creator);
+      const userId = String(currentUser.id);
+
+      console.log('Debug - Creator ID:', creatorId);
+      console.log('Debug - User ID:', userId);
+
+      if (creatorId !== userId) {
+        throw new Error('You do not have permission to delete this mind map');
+      }
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('mindmaps')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        throw new Error('Failed to delete mind map from database');
+      }
+
+      // Update local state only after successful database deletion
+      setSavedMindMaps((maps) => maps.filter((map) => map.id !== id));
+
+      // Clear current mind map if it was the one deleted
+      const currentMap = savedMindMaps.find(m => m.id === id);
+      if (currentMap) {
+        setNodes([]);
+        setEdges([]);
+      }
+
+    } catch (error) {
+      console.error('Error deleting mind map:', error);
+      // Show specific error message to user
+      alert(error instanceof Error ? error.message : 'Failed to delete mind map');
+      throw error; // Re-throw to be caught by the confirmation dialog
+    }
   };
 
   return (
@@ -642,18 +789,18 @@ function MindMap() {
                 {isActionsOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
                     <button
-                      onClick={handleDownloadImage}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
-                    >
-                      <Download size={16} className="mr-2" />
-                      Download as Image
-                    </button>
-                    <button
                       onClick={exportToJSON}
                       className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
                     >
                       <Download size={16} className="mr-2" />
                       Export to JSON
+                    </button>
+                    <button
+                      onClick={exportToHTML}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
+                    >
+                      <FileCode size={16} className="mr-2" />
+                      Export as HTML
                     </button>
                     <label className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm cursor-pointer block flex items-center">
                       <Upload size={16} className="mr-2" />
@@ -746,6 +893,7 @@ function MindMap() {
         isOpen={isLoadModalOpen}
         onClose={() => setIsLoadModalOpen(false)}
         onSelect={handleLoadMindMap}
+        onDelete={handleDeleteMindMap}
         mindMaps={savedMindMaps}
       />
 
