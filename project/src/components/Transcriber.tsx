@@ -7,7 +7,7 @@ function Transcriber() {
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'none' | 'text' | 'timestamps'>('none');
   const [videoUrl, setVideoUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,7 +93,7 @@ function Transcriber() {
     setFile(null);
     setResult(null);
     setError(null);
-    setCopied(false);
+    setCopied('none');
     setVideoUrl('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -105,10 +105,26 @@ function Transcriber() {
     
     try {
       await navigator.clipboard.writeText(result.full_text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopied('text');
+      setTimeout(() => setCopied('none'), 2000);
     } catch (err) {
       console.error('Failed to copy text:', err);
+    }
+  };
+
+  const handleCopyWithTimestamps = async () => {
+    if (!result?.segments) return;
+
+    try {
+      const textWithTimestamps = result.segments.map(segment => 
+        `[${formatTime(segment.start)} - ${formatTime(segment.end)}] ${segment.text}`
+      ).join('\n\n');
+
+      await navigator.clipboard.writeText(textWithTimestamps);
+      setCopied('timestamps');
+      setTimeout(() => setCopied('none'), 2000);
+    } catch (err) {
+      console.error('Failed to copy text with timestamps:', err);
     }
   };
 
@@ -221,22 +237,40 @@ function Transcriber() {
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Transcription Result</h2>
-            <button
-              onClick={handleCopyText}
-              className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800"
-            >
-              {copied ? (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Text
-                </>
-              )}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCopyText}
+                className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+              >
+                {copied === 'text' ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Text
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleCopyWithTimestamps}
+                className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+              >
+                {copied === 'timestamps' ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy with Timestamps
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="bg-white border border-gray-200 rounded-lg p-6">
