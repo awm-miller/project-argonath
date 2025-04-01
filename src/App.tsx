@@ -15,6 +15,19 @@ import { useAuth } from './hooks/useAuth';
 function App() {
   const { user, profile, loading } = useAuth();
 
+  React.useEffect(() => {
+    // Handle auth callback
+    const handleAuthCallback = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        // Clear the hash without triggering a reload
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+
+    handleAuthCallback();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

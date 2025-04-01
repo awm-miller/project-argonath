@@ -32,7 +32,7 @@ function Login() {
           }}
           providers={[]}
           view="sign_in"
-          redirectTo={`${window.location.origin}/auth/callback`}
+          redirectTo={window.location.origin}
         />
       </div>
     </div>

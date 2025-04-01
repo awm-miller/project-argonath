@@ -19,34 +19,9 @@ export function useAuth() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      
       if (session?.user) {
-        // If this is a new signup, create the user profile
-        if (event === 'SIGNED_IN') {
-          const { data: existingProfile } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', session.user.id)
-            .single();
-
-          if (!existingProfile) {
-            // Get the default role and classification
-            const [{ data: roles }, { data: classifications }] = await Promise.all([
-              supabase.from('user_roles').select('id').eq('name', 'user').single(),
-              supabase.from('user_classifications').select('id').eq('name', 'green').single()
-            ]);
-
-            // Create new user profile
-            await supabase.from('user_profiles').insert({
-              id: session.user.id,
-              role_id: roles?.id,
-              classification_id: classifications?.id,
-              full_name: session.user.email?.split('@')[0] || 'New User'
-            });
-          }
-        }
         fetchProfile(session.user.id);
       } else {
         setProfile(null);

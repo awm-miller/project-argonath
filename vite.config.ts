@@ -6,12 +6,13 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  preview: {
-    port: 4173,
-    host: true
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
   },
-  server: {
-    host: true,
-    port: 5173
-  }
 });
