@@ -36,6 +36,7 @@ import { SaveMindMapModal } from './SaveMindMapModal';
 import { LoadMindMapModal } from './LoadMindMapModal';
 import { EditNodeModal } from './EditNodeModal';
 import { toPng } from 'html-to-image';
+import JSZip from 'jszip';
 
 interface CustomNodeData {
   label: string;
@@ -195,7 +196,7 @@ function MindMap() {
   const [classifications, setClassifications] = useState<{ name: string }[]>(
     []
   );
-  const { getNodes, getEdges } = useReactFlow();
+  const { getNodes, getEdges, getViewport } = useReactFlow();
 
   useEffect(() => {
     const handleEditConnection = (event: CustomEvent<Edge>) => {
@@ -375,18 +376,18 @@ function MindMap() {
         )
       );
       setSelectedEdge(null);
-    } else if (pendingConnection) {
+    } else if (pendingConnection && pendingConnection.source && pendingConnection.target) {
       // Create new edge
       const edge: Edge<CustomEdgeData> = {
         ...pendingConnection,
-        id: `${pendingConnection.source}-${
-          pendingConnection.target
-        }-${Date.now()}`,
+        id: `${pendingConnection.source}-${pendingConnection.target}-${Date.now()}`,
         type: 'custom',
         data: {
           strength,
           description,
         },
+        source: pendingConnection.source,
+        target: pendingConnection.target,
       };
       setEdges((eds) => addEdge(edge, eds));
       setPendingConnection(null);
@@ -545,7 +546,7 @@ function MindMap() {
   };
 
   const handleDownloadImage = () => {
-    const imageWidth = 1920; // Higher resolution
+    const imageWidth = 1920;
     const imageHeight = 1080;
 
     const nodesBounds = getNodesBounds(getNodes());
@@ -562,12 +563,77 @@ function MindMap() {
       width: imageWidth,
       height: imageHeight,
       style: {
-        width: imageWidth,
-        height: imageHeight,
+        width: `${imageWidth}px`,
+        height: `${imageHeight}px`,
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
       },
     }).then(downloadImage);
     setIsActionsOpen(false);
+  };
+
+  const handleExportMiniSite = async () => {
+    setIsActionsOpen(false);
+    try {
+      // 1. Fetch template files
+      const [htmlRes, cssRes, jsRes] = await Promise.all([
+        fetch('/mini-site-template/index.html'),
+        fetch('/mini-site-template/styles.css'),
+        fetch('/mini-site-template/script.js'),
+      ]);
+
+      if (!htmlRes.ok || !cssRes.ok || !jsRes.ok) {
+        throw new Error('Failed to fetch template files.');
+      }
+
+      let htmlContent = await htmlRes.text();
+      const cssContent = await cssRes.text();
+      const jsContent = await jsRes.text();
+
+      // 2. Get current map data AND viewport
+      const mapData = {
+        nodes: getNodes(),
+        edges: getEdges(),
+        viewport: getViewport(),
+      };
+      const mapDataString = JSON.stringify(mapData);
+
+      // 3. Inject data into HTML template
+      htmlContent = htmlContent.replace(
+        '/* MAP_DATA_PLACEHOLDER */',
+        mapDataString
+      );
+
+      // 4. Create ZIP file
+      const zip = new JSZip();
+      zip.file('index.html', htmlContent);
+      zip.file('styles.css', cssContent);
+      zip.file('script.js', jsContent);
+
+      // 5. Generate and download ZIP
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mindmap-viewer.zip';
+      link.click();
+      URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Error exporting mini-site:', error);
+      // TODO: Show user-friendly error message
+      alert('Failed to export mind map as mini-site. See console for details.');
+    }
+  };
+
+  const handleDeleteMindMap = async (id: string) => {
+    try {
+      const { error } = await supabase.from('mindmaps').delete().eq('id', id);
+      if (error) throw error;
+      fetchSavedMindMaps();
+    } catch (error) {
+      console.error('Error deleting mind map:', error);
+      alert('Failed to delete mind map. See console for details.');
+    }
   };
 
   return (
@@ -685,6 +751,13 @@ function MindMap() {
                       <Folder size={16} className="mr-2" />
                       Load from Cloud
                     </button>
+                    <button
+                      onClick={handleExportMiniSite}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm flex items-center"
+                    >
+                      <Download size={16} className="mr-2" />
+                      Download as Mini-Site
+                    </button>
                   </div>
                 )}
               </div>
@@ -725,7 +798,10 @@ function MindMap() {
         }}
         onSubmit={handleConnectionSubmit}
         onDelete={selectedEdge ? handleConnectionDelete : undefined}
-        initialData={selectedEdge?.data}
+        initialData={selectedEdge?.data ? {
+            strength: selectedEdge.data.strength,
+            description: selectedEdge.data.description || '',
+        } : undefined}
       />
 
       <CustomNodeModal
@@ -747,6 +823,7 @@ function MindMap() {
         onClose={() => setIsLoadModalOpen(false)}
         onSelect={handleLoadMindMap}
         mindMaps={savedMindMaps}
+        onDelete={handleDeleteMindMap}
       />
 
       <EditNodeModal
