@@ -40,29 +40,41 @@ function App() {
     return <Login />;
   }
 
+  // If user has no classification, only allow access to home and profile pages
+  const hasNoClassification = !profile?.classification;
+
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/sunlight" element={<ProfileList />} />
-        <Route path="/sunlight/profile/:id" element={<ProfileView />} />
-        <Route path="/transcriber" element={<Transcriber />} />
-        <Route path="/connections" element={
-          <ReactFlowProvider>
-            <MindMap />
-          </ReactFlowProvider>
-        } />
-        <Route path="/bundle" element={<div className="p-8"><h1 className="text-2xl font-bold">Bundle OSINT - Coming Soon</h1></div>} />
-        <Route path="/ai-search" element={<div className="p-8"><h1 className="text-2xl font-bold">AI Search - Coming Soon</h1></div>} />
-        <Route path="/weezr" element={<div className="p-8"><h1 className="text-2xl font-bold">Weezr - Coming Soon</h1></div>} />
-        <Route path="/profile" element={<UserProfile />} />
-        <Route 
-          path="/users" 
-          element={
-            profile?.classification?.name === 'black' ? <UserManagement /> : <Navigate to="/" replace />
-          } 
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {hasNoClassification ? (
+          <>
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/sunlight" element={<ProfileList />} />
+            <Route path="/sunlight/profile/:id" element={<ProfileView />} />
+            <Route path="/transcriber" element={<Transcriber />} />
+            <Route path="/connections" element={
+              <ReactFlowProvider>
+                <MindMap />
+              </ReactFlowProvider>
+            } />
+            <Route path="/bundle" element={<div className="p-8"><h1 className="text-2xl font-bold">Bundle OSINT - Coming Soon</h1></div>} />
+            <Route path="/ai-search" element={<div className="p-8"><h1 className="text-2xl font-bold">AI Search - Coming Soon</h1></div>} />
+            <Route path="/weezr" element={<div className="p-8"><h1 className="text-2xl font-bold">Weezr - Coming Soon</h1></div>} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route 
+              path="/users" 
+              element={
+                profile?.classification?.name === 'black' ? <UserManagement /> : <Navigate to="/" replace />
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
       </Routes>
     </Layout>
   );
