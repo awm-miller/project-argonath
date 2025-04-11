@@ -7,6 +7,8 @@ import ProfileList from './components/ProfileList';
 import ProfileView from './components/ProfileView';
 import Transcriber from './components/Transcriber';
 import MindMap from './components/MindMap';
+import Reverberate from './components/Reverberate';
+import InternetArchive from './components/InternetArchive';
 import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
@@ -57,6 +59,8 @@ function App() {
             <Route path="/sunlight" element={<ProfileList />} />
             <Route path="/sunlight/profile/:id" element={<ProfileView />} />
             <Route path="/transcriber" element={<Transcriber />} />
+            <Route path="/reverberate" element={<Reverberate />} />
+            <Route path="/archive" element={<InternetArchive />} />
             <Route path="/connections" element={
               <ReactFlowProvider>
                 <MindMap />

@@ -19,9 +19,6 @@ export interface Profile {
   summary_html?: string;
   detailed_record_html?: string;
   search_vector?: any;
-  short_description_lawyered?: boolean;
-  summary_lawyered?: boolean;
-  detailed_record_lawyered?: boolean;
 }
 
 export interface TagType {

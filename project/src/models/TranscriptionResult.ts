@@ -1,9 +1,5 @@
-export interface TranscriptionResult {
-  message: string;
-  full_text: string;
-  segments: {
-    start: number;
-    end: number;
-    text: string;
-  }[];
+export interface ConversionStatus {
+  status: 'converting' | 'complete' | 'error';
+  message?: string;
+  url?: string;
 }

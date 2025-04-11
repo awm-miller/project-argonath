@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.rotate-y-12 {
+  transform: rotateY(12deg);
+}
+
+.-rotate-y-12 {
+  transform: rotateY(-12deg);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-delayed {
+  animation: fadeIn 0.3s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.transform-gpu {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.stroke-dashed {
+  stroke-dasharray: 5,5;
+}
+
+.react-flow__edge-path {
+  stroke: #666;
+  stroke-width: 2;
+  fill: none;
+}
+
+.react-flow__handle {
+  width: 16px !important;
+  height: 16px !important;
+  background: #555 !important;
+  border: 2px solid white !important;
+  transition: none !important;
+}
+
+/* Remove animation classes from tooltips */
+.react-flow__node .absolute,
+.react-flow__edge .absolute {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}

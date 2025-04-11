@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Mic, Home, LogOut, User, Shield, Users, Network } from 'lucide-react';
+import { Sun, Mic, Home, LogOut, User, Shield, Users, Network, Waves, Archive } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -53,7 +53,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               }`}
             >
               <Mic className="w-5 h-5 mr-3" />
-              Transcriber
+              Transcriber Helper
             </Link>
             <Link
               to="/connections"
@@ -63,6 +63,24 @@ function Layout({ children }: { children: React.ReactNode }) {
             >
               <Network className="w-5 h-5 mr-3" />
               Connections
+            </Link>
+            <Link
+              to="/reverberate"
+              className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 ${
+                location.pathname === '/reverberate' ? 'bg-gray-50 text-blue-600' : ''
+              }`}
+            >
+              <Waves className="w-5 h-5 mr-3" />
+              Reverberate
+            </Link>
+            <Link
+              to="/archive"
+              className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 ${
+                location.pathname === '/archive' ? 'bg-gray-50 text-blue-600' : ''
+              }`}
+            >
+              <Archive className="w-5 h-5 mr-3" />
+              Internet Archive
             </Link>
             {profile?.classification?.name === 'black' && (
               <Link

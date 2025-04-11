@@ -1,6 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Mic, ChevronLeft, ChevronRight, Network } from 'lucide-react';
+import {
+  Sun,
+  Mic,
+  ChevronLeft,
+  ChevronRight,
+  Network,
+  Waves,
+  Archive,
+} from 'lucide-react';
 
 interface Tool {
   id: string;
@@ -15,34 +23,57 @@ const tools: Tool[] = [
   {
     id: 'sunlight',
     name: 'Sunlight Database',
-    description: 'Explore our comprehensive database of profiles with advanced search capabilities and tag-based filtering.',
+    description:
+      'Explore our comprehensive database of profiles with advanced search capabilities and tag-based filtering.',
     icon: <Sun className="w-10 h-10" />,
     path: '/sunlight',
-    color: 'from-yellow-400 to-orange-500'
+    color: 'from-yellow-400 to-orange-500',
   },
   {
     id: 'transcriber',
-    name: 'Audio Transcriber',
-    description: 'Convert audio and video files to text with our advanced transcription service. Supports multiple file formats and online videos.',
+    name: 'Transcriber Helper',
+    description:
+      'Tired of buggy sites with loads of ads to download? This tool downloads, converts and archives your content quickly and painlessly.',
     icon: <Mic className="w-10 h-10" />,
     path: '/transcriber',
-    color: 'from-blue-400 to-indigo-500'
+    color: 'from-blue-400 to-indigo-500',
   },
   {
     id: 'connections',
     name: 'Connections',
-    description: 'Visualize and analyze relationships between profiles with our advanced link analysis builder.',
+    description:
+      'Visualize and analyze relationships between profiles with our advanced link analysis builder.',
     icon: <Network className="w-10 h-10" />,
     path: '/connections',
-    color: 'from-purple-500 to-pink-500'
-  }
+    color: 'from-purple-500 to-pink-500',
+  },
+  {
+    id: 'reverberate',
+    name: 'Reverberate',
+    description:
+      'Rapidly search through lists of names with keywords to find meaningful connections and patterns.',
+    icon: <Waves className="w-10 h-10" />,
+    path: '/reverberate',
+    color: 'from-green-400 to-teal-500',
+  },
+  {
+    id: 'archive',
+    name: 'Internet Archive',
+    description:
+      'Search and retrieve content from the Internet Archive with ease.',
+    icon: <Archive className="w-10 h-10" />,
+    path: '/archive',
+    color: 'from-gray-700 to-gray-300',
+  },
 ];
 
 function Home() {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isAnimating, setIsAnimating] = React.useState(false);
-  const [direction, setDirection] = React.useState<'next' | 'prev' | null>(null);
+  const [direction, setDirection] = React.useState<'next' | 'prev' | null>(
+    null
+  );
 
   const nextCard = () => {
     if (isAnimating) return;
@@ -79,7 +110,8 @@ function Home() {
             Argonath
           </h1>
           <p className="text-xl text-gray-600 animate-fade-in-delayed">
-            Project Argonath is a best-in-class suite of tools and searches over the best knowledge in the field.
+            Project Argonath is a best-in-class suite of tools and searches over
+            the best knowledge in the field.
           </p>
         </div>
 
@@ -105,8 +137,12 @@ function Home() {
           <div className="relative h-[320px] perspective-1000">
             {tools.map((tool, index) => {
               const isActive = index === currentIndex;
-              const isPrev = (index === currentIndex - 1) || (currentIndex === 0 && index === tools.length - 1);
-              const isNext = (index === currentIndex + 1) || (currentIndex === tools.length - 1 && index === 0);
+              const isPrev =
+                index === currentIndex - 1 ||
+                (currentIndex === 0 && index === tools.length - 1);
+              const isNext =
+                index === currentIndex + 1 ||
+                (currentIndex === tools.length - 1 && index === 0);
 
               return (
                 <div
@@ -126,12 +162,14 @@ function Home() {
                     className="bg-white rounded-xl shadow-xl overflow-hidden cursor-pointer transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                   >
                     {/* Card Header */}
-                    <div className={`bg-gradient-to-r ${tool.color} p-6 relative overflow-hidden`}>
+                    <div
+                      className={`bg-gradient-to-r ${tool.color} p-6 relative overflow-hidden`}
+                    >
                       <div className="absolute inset-0 bg-white/10 backdrop-blur-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="flex justify-center relative z-10">
                         <div className="bg-white/10 backdrop-blur-lg rounded-full p-3 transform transition-transform hover:scale-110">
                           {React.cloneElement(tool.icon as React.ReactElement, {
-                            className: "w-10 h-10 text-white"
+                            className: 'w-10 h-10 text-white',
                           })}
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Loader2, X, Copy, CheckCircle } from 'lucide-react';
-import type { TranscriptionResult } from '../models/TranscriptionResult';
+import type { TranscriptionResult, StreamUpdate } from '../models/TranscriptionResult';
 
 function Transcriber() {
   const [file, setFile] = useState<File | null>(null);
@@ -10,6 +10,7 @@ function Transcriber() {
   const [copied, setCopied] = useState<'none' | 'text' | 'timestamps'>('none');
   const [videoUrl, setVideoUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [streamStatus, setStreamStatus] = useState<StreamUpdate | null>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -31,6 +32,7 @@ function Transcriber() {
     setFile(selectedFile);
     setError(null);
     setResult(null);
+    setStreamStatus(null);
 
     try {
       setIsUploading(true);
@@ -66,25 +68,54 @@ function Transcriber() {
 
     setError(null);
     setResult(null);
+    setStreamStatus(null);
     setIsUploading(true);
 
     try {
-      const response = await fetch(`https://entirely-apt-tadpole.ngrok-free.app/weblink?url=${encodeURIComponent(videoUrl)}`, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json'
+      // Construct the URL with the query parameter
+      const apiUrl = new URL('https://entirely-apt-tadpole.ngrok-free.app/weblink/stream');
+      apiUrl.searchParams.append('url', videoUrl);
+
+      // Use EventSource for Server-Sent Events
+      const eventSource = new EventSource(apiUrl.toString());
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data: StreamUpdate = JSON.parse(event.data);
+          setStreamStatus(data);
+
+          if (data.status === 'complete' || data.status === 'error') {
+            setIsUploading(false);
+            if (data.status === 'complete') {
+              setResult({
+                message: data.message || '',
+                full_text: data.full_text || '',
+                segments: data.segments || []
+              });
+            } else {
+              setError(data.message || 'An unknown error occurred during streaming.');
+            }
+            eventSource.close(); // Close the connection when done or on error
+          }
+        } catch (e) {
+          console.error('Error parsing SSE data:', e);
+          setError('Error processing stream update.');
+          setIsUploading(false);
+          eventSource.close();
         }
-      });
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to transcribe video');
-      }
+      eventSource.onerror = (err) => {
+        console.error('EventSource failed:', err);
+        setError('Failed to connect to the transcription stream. Check the URL or backend status.');
+        setIsUploading(false);
+        eventSource.close();
+      };
 
-      const data: TranscriptionResult = await response.json();
-      setResult(data);
+      // Note: The rest of the old fetch logic (reader loop) is replaced by EventSource handlers
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
+      // General catch block for errors *before* EventSource connection (e.g., URL parsing)
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setIsUploading(false);
     }
   };
@@ -95,6 +126,7 @@ function Transcriber() {
     setError(null);
     setCopied('none');
     setVideoUrl('');
+    setStreamStatus(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -126,6 +158,67 @@ function Transcriber() {
     } catch (err) {
       console.error('Failed to copy text with timestamps:', err);
     }
+  };
+
+  const renderProgress = () => {
+    if (!streamStatus) return null;
+
+    let progressContent = null;
+    switch (streamStatus.status) {
+      case 'starting':
+        progressContent = (
+          <div className="flex items-center space-x-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>{streamStatus.message}</span>
+          </div>
+        );
+        break;
+      case 'downloading':
+        progressContent = (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>{streamStatus.message}</span>
+              <span>{streamStatus.progress?.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${streamStatus.progress}%` }}
+              ></div>
+            </div>
+          </div>
+        );
+        break;
+      case 'transcribing':
+        progressContent = (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>{streamStatus.message}</span>
+              <span>{streamStatus.progress?.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${streamStatus.progress}%` }}
+              ></div>
+            </div>
+          </div>
+        );
+        break;
+      default:
+        progressContent = (
+          <div className="flex items-center space-x-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>{streamStatus.message}</span>
+          </div>
+        );
+    }
+
+    return (
+      <div className="mt-4 p-4 bg-white border border-gray-200 rounded-lg">
+        {progressContent}
+      </div>
+    );
   };
 
   return (
@@ -191,7 +284,7 @@ function Transcriber() {
               {isUploading ? (
                 <span className="flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Transcribing...
+                  Processing...
                 </span>
               ) : (
                 'Start Transcription'
@@ -232,6 +325,8 @@ function Transcriber() {
           </div>
         </div>
       )}
+
+      {streamStatus && renderProgress()}
 
       {result && (
         <div className="mt-8">

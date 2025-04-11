@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { X, AlertTriangle, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -7,44 +7,38 @@ import type { Profile, Citation } from '../types';
 interface EditProfileProps {
   isOpen: boolean;
   onClose: () => void;
-  profile: Profile | null;
+  profile: Profile;
   onUpdate: () => void;
 }
 
 export function EditProfile({ isOpen, onClose, profile, onUpdate }: EditProfileProps) {
-  const [shortDescription, setShortDescription] = useState('');
-  const [summary, setSummary] = useState('');
-  const [detailedRecord, setDetailedRecord] = useState('');
-  const [shortDescriptionLawyered, setShortDescriptionLawyered] = useState(false);
-  const [summaryLawyered, setSummaryLawyered] = useState(false);
-  const [detailedRecordLawyered, setDetailedRecordLawyered] = useState(false);
-  const [citations, setCitations] = useState<Citation[][]>([[], [], []]);
+  const [shortDescription, setShortDescription] = useState(profile.short_description);
+  const [summary, setSummary] = useState(profile.summary);
+  const [detailedRecord, setDetailedRecord] = useState(profile.detailed_record);
+  const [shortDescriptionLawyered, setShortDescriptionLawyered] = useState(profile.short_description_lawyered);
+  const [summaryLawyered, setSummaryLawyered] = useState(profile.summary_lawyered);
+  const [detailedRecordLawyered, setDetailedRecordLawyered] = useState(profile.detailed_record_lawyered);
+  const [citations, setCitations] = useState<Citation[][]>(profile.citations || [[], [], []]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
-    
     setSaving(true);
     setError(null);
 
     try {
-      // Ensure citations array is properly structured as a JSONB array
-      const formattedCitations = citations.map(sectionCitations => 
-        JSON.stringify(sectionCitations)
-      );
-
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          short_description: shortDescription,
+          short_description,
           summary,
-          detailed_record: detailedRecord,
+          detailed_record,
           short_description_lawyered: shortDescriptionLawyered,
           summary_lawyered: summaryLawyered,
           detailed_record_lawyered: detailedRecordLawyered,
-          citations: formattedCitations,
+          citations,
+          // Also update the HTML versions
           short_description_html: shortDescription,
           summary_html: summary,
           detailed_record_html: detailedRecord,
@@ -61,33 +55,6 @@ export function EditProfile({ isOpen, onClose, profile, onUpdate }: EditProfileP
       setSaving(false);
     }
   };
-
-  // Initialize form data when profile changes
-  useEffect(() => {
-    if (profile) {
-      setShortDescription(profile.short_description || '');
-      setSummary(profile.summary || '');
-      setDetailedRecord(profile.detailed_record || '');
-      setShortDescriptionLawyered(profile.short_description_lawyered || false);
-      setSummaryLawyered(profile.summary_lawyered || false);
-      setDetailedRecordLawyered(profile.detailed_record_lawyered || false);
-      
-      // Ensure citations are properly parsed from the database
-      try {
-        const parsedCitations = profile.citations?.map(sectionCitations => {
-          if (typeof sectionCitations === 'string') {
-            return JSON.parse(sectionCitations);
-          }
-          return sectionCitations || [];
-        }) || [[], [], []];
-        
-        setCitations(parsedCitations);
-      } catch (err) {
-        console.error('Error parsing citations:', err);
-        setCitations([[], [], []]);
-      }
-    }
-  }, [profile]);
 
   const handleCitationChange = (sectionIndex: number, citationIndex: number, field: keyof Citation, value: string) => {
     setCitations(prevCitations => {
@@ -133,8 +100,6 @@ export function EditProfile({ isOpen, onClose, profile, onUpdate }: EditProfileP
       return newCitations;
     });
   };
-
-  if (!profile) return null;
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
