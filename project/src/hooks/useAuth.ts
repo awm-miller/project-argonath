@@ -37,27 +37,12 @@ export function useAuth() {
   }, []);
 
   async function fetchProfile(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          role:user_roles(*),
-          classification:user_classifications(*)
-        `)
-        .eq('id', userId)
-        .maybeSingle();
+    let retries = 2; // Number of retry attempts
+    const delay = 1000; // Delay between retries in milliseconds
 
-      if (error) {
-        throw error;
-      }
-
-      // Handle case where profile doesn't exist yet
-      if (!data) {
-        // Wait a bit and try again, in case the trigger is still creating the profile
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { data: retryData, error: retryError } = await supabase
+    while (retries >= 0) {
+      try {
+        const { data, error } = await supabase
           .from('user_profiles')
           .select(`
             *,
@@ -67,17 +52,33 @@ export function useAuth() {
           .eq('id', userId)
           .maybeSingle();
 
-        if (retryError) throw retryError;
-        setProfile(retryData);
-      } else {
+        if (error) {
+          throw error;
+        }
+
+        if (!data && retries > 0) {
+          // Profile doesn't exist yet, wait and retry
+          await new Promise(resolve => setTimeout(resolve, delay));
+          retries--;
+          continue;
+        }
+
         setProfile(data);
+        break; // Success, exit the retry loop
+      } catch (error) {
+        if (retries === 0) {
+          console.error('Error fetching user profile:', error);
+          // On final retry, set profile to null to indicate the error state
+          setProfile(null);
+        } else {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, delay));
+          retries--;
+        }
       }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      setProfile(null);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   }
 
   return { user, profile, loading };
