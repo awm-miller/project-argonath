@@ -8,9 +8,10 @@ const API_BASE_URL = 'https://entirely-apt-tadpole.ngrok-free.app';
 // Common fetch options for all API calls
 const fetchOptions = {
   mode: 'cors' as RequestMode,
-  credentials: 'include' as RequestCredentials,
+  credentials: 'omit' as RequestCredentials,
   headers: {
     'Accept': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   }
 };
 
@@ -222,7 +223,6 @@ function Reverberate() {
         throw new Error("Keywords cannot be empty.");
       }
       formData.append('keywords', keywordsString);
-      formData.append('email', user!.email);
 
       // Submit job
       const response = await fetch(`${API_BASE_URL}/reverberate/`, {
