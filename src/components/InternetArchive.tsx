@@ -1,49 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader2, X } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://entirely-apt-tadpole.ngrok-free.app';
-
-console.log('Using API endpoint:', API_BASE_URL);
+const API_BASE_URL = 'https://entirely-apt-tadpole.ngrok-free.app';
 
 const fetchOptions = {
   mode: 'cors' as RequestMode,
-  credentials: 'omit' as RequestCredentials,
+  credentials: 'include' as RequestCredentials,
   headers: {
-    'Accept': 'application/json',
-    'ngrok-skip-browser-warning': 'true',
+    Accept: 'application/json',
   },
 };
 
-const jsonFetchOptions = {
-  ...fetchOptions,
-  headers: {
-    ...fetchOptions.headers,
-    'Content-Type': 'application/json',
-  },
-};
-
-const formDataFetchOptions = {
-  ...fetchOptions,
-  headers: {
-    ...fetchOptions.headers,
-  },
-};
-
-interface ConversionJobStatus {
-  status: 'pending' | 'downloading' | 'converting' | 'completed' | 'failed';
+interface JobStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   download_url?: string;
   error?: string;
 }
 
-function Transcriber() {
-  const [videoUrl, setVideoUrl] = useState('');
+function InternetArchive() {
+  const [url, setUrl] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<string>('');
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -53,16 +35,11 @@ function Transcriber() {
     };
   }, [pollInterval]);
 
-  const handleDownload = () => {
-    if (!downloadUrl) return;
-    window.location.href = downloadUrl;
-  };
-
   const checkJobStatus = async (id: string) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/convert/status/${id}`,
-        jsonFetchOptions
+        `${API_BASE_URL}/internet-archive/status/${id}`,
+        fetchOptions
       );
 
       if (!response.ok) {
@@ -84,26 +61,24 @@ function Transcriber() {
         throw new Error(errorDetail);
       }
 
-      const data: ConversionJobStatus = await response.json();
+      const data: JobStatus = await response.json();
 
       switch (data.status) {
         case 'pending':
           setProgress('Initializing...');
           setStatusMessage('Job is pending...');
           break;
-        case 'downloading':
-          setProgress('Downloading media...');
-          setStatusMessage('Downloading media file...');
-          break;
-        case 'converting':
-          setProgress('Converting to MP3...');
-          setStatusMessage('Converting file to MP3 format...');
+        case 'processing':
+          setProgress('Processing archive data...');
+          setStatusMessage(
+            'Searching and analyzing Internet Archive snapshots...'
+          );
           break;
         case 'completed':
           if (data.download_url) {
             setProgress('Complete!');
             setStatusMessage(
-              'Conversion complete! Click below to download your MP3.'
+              'Processing complete! Click below to download your results.'
             );
             setDownloadUrl(`${API_BASE_URL}${data.download_url}`);
             if (pollInterval) {
@@ -112,19 +87,20 @@ function Transcriber() {
             }
             setProcessing(false);
           } else {
-            setProgress('Error');
-            setStatusMessage('Processing complete, but download URL missing.');
-            setError(
-              data.error || 'An unknown error occurred after completion.'
-            );
-            if (pollInterval) clearInterval(pollInterval);
+            setProgress('No Results');
+            setStatusMessage('Processing complete, but no results were found.');
+            setError(data.error || 'No archive data found for your URL.');
+            if (pollInterval) {
+              clearInterval(pollInterval);
+              setPollInterval(null);
+            }
             setProcessing(false);
           }
           break;
         case 'failed':
           setProgress('Failed');
           setStatusMessage('Job failed.');
-          setError(data.error || 'An unknown error occurred during conversion');
+          setError(data.error || 'An unknown error occurred during processing');
           if (pollInterval) {
             clearInterval(pollInterval);
             setPollInterval(null);
@@ -161,53 +137,49 @@ function Transcriber() {
     }
     const interval = setInterval(() => checkJobStatus(id), 10000);
     setPollInterval(interval);
-    setTimeout(() => checkJobStatus(id), 1000);
+    checkJobStatus(id);
   };
 
   const handleSubmit = async () => {
-    if (!videoUrl || !videoUrl.trim().match(/^https?:\/\//)) {
-      setError(
-        'Please enter a valid video URL starting with http:// or https://'
-      );
+    if (!url || !url.trim().match(/^https?:\/\//)) {
+      setError('Please enter a valid URL starting with http:// or https://');
       return;
     }
 
     setError(null);
-    setProcessing(true);
-    setStatusMessage('Submitting conversion job...');
     setProgress('Submitting...');
+    setStatusMessage('Submitting job...');
+    setProcessing(true);
     setDownloadUrl(null);
 
     try {
-      const formData = new FormData();
-      formData.append('url', videoUrl);
-
-      const submitOptions = {
-        ...formDataFetchOptions,
+      const postOptions = {
+        ...fetchOptions,
         method: 'POST',
-        body: formData,
+        headers: {
+          ...fetchOptions.headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
       };
 
-      const response = await fetch(`${API_BASE_URL}/convert`, submitOptions);
+      const response = await fetch(
+        `${API_BASE_URL}/internet-archive`,
+        postOptions
+      );
 
-      if (response.status === 202) {
-        const data = await response.json();
-        if (data.job_id) {
-          setJobId(data.job_id);
-          setStatusMessage(
-            'Job submitted successfully! Starting conversion...'
-          );
-          startPolling(data.job_id);
-        } else {
-          throw new Error('Submission successful, but no Job ID received.');
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to process URL');
+      }
+
+      const data = await response.json();
+      if (data.job_id) {
+        setJobId(data.job_id);
+        setStatusMessage('Job submitted successfully! Starting analysis...');
+        startPolling(data.job_id);
       } else {
-        let errorText = `Failed to start job: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorText = errorData.detail || errorText;
-        } catch {}
-        throw new Error(errorText);
+        throw new Error('Submission successful, but no Job ID received.');
       }
     } catch (err) {
       console.error('Submit error:', err);
@@ -223,7 +195,7 @@ function Transcriber() {
   };
 
   const resetForm = () => {
-    setVideoUrl('');
+    setUrl('');
     setJobId(null);
     if (pollInterval) clearInterval(pollInterval);
     setPollInterval(null);
@@ -236,7 +208,9 @@ function Transcriber() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-white">Transcriber Helper</h1>
+      <h1 className="text-2xl font-bold mb-6 text-white">
+        Internet Archive Search [BETA]
+      </h1>
 
       <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
         <div className="flex justify-between items-center mb-4">
@@ -248,7 +222,7 @@ function Transcriber() {
               </span>
             )}
           </div>
-          {(videoUrl || jobId || error || downloadUrl) && (
+          {(url || jobId || error || downloadUrl) && (
             <button
               onClick={resetForm}
               className="text-sm text-gray-400 hover:text-gray-300"
@@ -261,18 +235,14 @@ function Transcriber() {
 
         <div className="space-y-4">
           <div>
-            <label
-              htmlFor="video-url"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
-              Video URL
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              URL
             </label>
             <input
               type="url"
-              id="video-url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="Enter any video URL (e.g., YouTube, Vimeo, direct link)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Enter URL to search in Internet Archive"
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
               disabled={processing || !!downloadUrl}
             />
@@ -281,11 +251,11 @@ function Transcriber() {
           {!processing && !downloadUrl && (
             <button
               onClick={handleSubmit}
-              disabled={!videoUrl || processing}
+              disabled={!url || processing}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               <Download className="w-5 h-5 mr-2" />
-              Start Conversion
+              Search Archive
             </button>
           )}
 
@@ -311,36 +281,13 @@ function Transcriber() {
           )}
 
           {downloadUrl && (
-            <div className="mt-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={handleDownload}
-                  className="flex-1 flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <Download className="w-6 h-6 mr-2" />
-                  Download MP3
-                </button>
-                <a
-                  href="https://notebooklm.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Open NotebookLM
-                </a>
-              </div>
-
-              <div className="mt-8 p-4 bg-gray-900/50 border border-gray-700 rounded-lg">
-                <h3 className="text-lg font-semibold text-white mb-4">
-                  Instructions:
-                </h3>
-                <img
-                  src="https://i.imgur.com/w2hHB5e.png"
-                  alt="Instructions for using NotebookLM"
-                  className="w-full rounded-lg shadow-lg"
-                />
-              </div>
-            </div>
+            <button
+              onClick={() => window.location.href = downloadUrl}
+              className="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Download Results
+            </button>
           )}
         </div>
       </div>
@@ -348,4 +295,4 @@ function Transcriber() {
   );
 }
 
-export default Transcriber;
+export default InternetArchive;

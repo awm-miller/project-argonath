@@ -72,10 +72,10 @@ function ProfileList() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Profile Database</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Profile Database</h1>
           <div className="flex gap-4 mb-4">
             <div className="relative flex-1">
               <input
@@ -83,9 +83,9 @@ function ProfileList() {
                 placeholder="Search profiles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
-              <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" size={20} />
             </div>
           </div>
 
@@ -96,8 +96,8 @@ function ProfileList() {
                 onClick={() => toggleTag(tag.name)}
                 className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
                   selectedTags.includes(tag.name)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-500 text-white dark:bg-blue-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 <Tag size={14} className="mr-1" />
@@ -110,14 +110,14 @@ function ProfileList() {
 
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {profiles.map((profile) => (
               <div
                 key={profile.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => navigate(`/sunlight/profile/${profile.id}`)}
               >
                 <div className="flex">
@@ -131,16 +131,16 @@ function ProfileList() {
                     </div>
                   )}
                   <div className="p-6 flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">{profile.name}</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{profile.name}</h3>
                     <div className="mb-4">
-                      <p className="text-gray-600">{profile.short_description}</p>
+                      <p className="text-gray-600 dark:text-gray-300">{profile.short_description}</p>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-4">
                       {profile.tags?.map(tag => (
                         <span
                           key={tag}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                         >
                           {tag}
                         </span>
@@ -148,7 +148,7 @@ function ProfileList() {
                     </div>
 
                     <div className="flex justify-end">
-                      <span className="text-blue-600 hover:text-blue-800 font-medium">
+                      <span className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                         View Full Profile →
                       </span>
                     </div>
@@ -158,7 +158,7 @@ function ProfileList() {
             ))}
             
             {profiles.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 No profiles found. Try adjusting your search or filters.
               </div>
             )}

@@ -7,6 +7,8 @@ import ProfileList from './components/ProfileList';
 import ProfileView from './components/ProfileView';
 import Transcriber from './components/Transcriber';
 import MindMap from './components/MindMap';
+import Reverberate from './components/Reverberate';
+import InternetArchive from './components/InternetArchive';
 import Login from './components/Login';
 import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
@@ -16,22 +18,14 @@ function App() {
   const { user, profile, loading } = useAuth();
 
   React.useEffect(() => {
-    // Handle auth callback
-    const handleAuthCallback = async () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        // Clear the hash without triggering a reload
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-    };
-
-    handleAuthCallback();
+    // Force dark mode
+    document.documentElement.classList.add('dark');
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
     );
   }
@@ -40,7 +34,6 @@ function App() {
     return <Login />;
   }
 
-  // If user has no classification, only allow access to home and profile pages
   const hasNoClassification = !profile?.classification;
 
   return (
@@ -57,6 +50,8 @@ function App() {
             <Route path="/sunlight" element={<ProfileList />} />
             <Route path="/sunlight/profile/:id" element={<ProfileView />} />
             <Route path="/transcriber" element={<Transcriber />} />
+            <Route path="/reverberate" element={<Reverberate />} />
+            <Route path="/archive" element={<InternetArchive />} />
             <Route path="/connections" element={
               <ReactFlowProvider>
                 <MindMap />
