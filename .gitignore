@@ -26,3 +26,8 @@ jsons/kumu-ceg-network.json
 jsons/mindmap.json
 project/jsons/kumu-ceg-network.json
 project/jsons/mindmap.json
+
+.env
+.bolt/
+jsons/
+supabase/
