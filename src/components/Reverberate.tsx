@@ -36,3 +36,5 @@ const categories: Category[] = [
     tooltip: 'Identifies references to sexual misconduct or inappropriate behavior'
   }
 ];
+
+export default categories
