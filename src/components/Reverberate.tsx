@@ -228,6 +228,11 @@ function Reverberate() {
               setPollInterval(null);
             }
             setProcessing(false);
+            // Automatically start AI analysis
+            setStatusMessage('Reverberation complete! Starting AI analysis...');
+            setProgress('Initiating AI Analysis...');
+            // Note: setProcessing(true) should remain or be re-asserted by handleStartAnalysis
+            handleStartAnalysis(id); // Pass the original job ID
           } else {
             setProgress('No Results');
             setStatusMessage('Processing complete, but no results were found.');
@@ -296,6 +301,7 @@ function Reverberate() {
             }
           }
           setShowAnalysis(true);
+          setProcessing(false); // Stop main loader once analysis is also complete
           break;
         case 'failed':
           if (analysisPollInterval) {
@@ -447,6 +453,9 @@ function Reverberate() {
     setAnalysisError(null);
     setAnalysisProgress('Submitting analysis job...');
     
+    setProcessing(true); // Ensure main loader remains active during analysis submission and polling
+    setStatusMessage('AI Analysis is in progress...'); // Update overall status
+
     try {
       const response = await fetch(`${API_BASE_URL}/reverberate/analyze/${jobId}`, {
         ...fetchOptions,
@@ -511,7 +520,7 @@ function Reverberate() {
                           <tr>
                             {Object.entries(personReport.categories).map(([catKey, catSummary], idx) => (
                               <td key={idx} className="px-3 py-2 border border-gray-200 dark:border-gray-600">
-                                {catSummary.includes('No compromising') ? <em>{catSummary}</em> : catSummary}
+                                {(catSummary as string).includes('No compromising') ? <em>{catSummary as string}</em> : catSummary as string}
                               </td>
                             ))}
                           </tr>
@@ -544,16 +553,7 @@ function Reverberate() {
           </div>
         )}
         
-        <div className="mt-6">
-          <button
-            onClick={downloadAnalysisResults}
-            disabled={!analysisJobId || analysisStatus !== 'completed'}
-            className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Download Analysis JSON
-          </button>
-        </div>
+        {/* Download button removed as per request */}
       </div>
     );
   };
