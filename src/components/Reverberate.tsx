@@ -100,6 +100,7 @@ function Reverberate() {
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [tooltipTimer, setTooltipTimer] = useState<NodeJS.Timeout | null>(null);
   
   const [jobId, setJobId] = useState<string | null>(null);
   const [pollInterval, setPollInterval] = useState<number | null>(null);
@@ -122,8 +123,26 @@ function Reverberate() {
       if (analysisPollInterval) {
         clearInterval(analysisPollInterval);
       }
+      if (tooltipTimer) {
+        clearTimeout(tooltipTimer);
+      }
     };
-  }, [pollInterval, analysisPollInterval]);
+  }, [pollInterval, analysisPollInterval, tooltipTimer]);
+
+  const handleMouseEnter = (categoryId: string) => {
+    const timer = setTimeout(() => {
+      setHoveredCategory(categoryId);
+    }, 3000); // 3 seconds delay
+    setTooltipTimer(timer);
+  };
+
+  const handleMouseLeave = () => {
+    if (tooltipTimer) {
+      clearTimeout(tooltipTimer);
+      setTooltipTimer(null);
+    }
+    setHoveredCategory(null);
+  };
 
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories(prev => 
@@ -543,8 +562,8 @@ function Reverberate() {
                 <div
                   key={category.id}
                   className="relative"
-                  onMouseEnter={() => setHoveredCategory(category.id)}
-                  onMouseLeave={() => setHoveredCategory(null)}
+                  onMouseEnter={() => handleMouseEnter(category.id)}
+                  onMouseLeave={handleMouseLeave}
                 >
                   <label
                     className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
