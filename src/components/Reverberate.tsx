@@ -1,3 +1,12 @@
+import React from 'react';
+
+interface Category {
+  id: string;
+  label: string;
+  keywords: string[];
+  tooltip: string;
+}
+
 const categories: Category[] = [
   {
     id: 'antisemite',
@@ -37,4 +46,33 @@ const categories: Category[] = [
   }
 ];
 
-export default categories
+const Reverberate: React.FC = () => {
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Categories</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {categories.map((category) => (
+          <div 
+            key={category.id}
+            className="bg-gray-800 p-4 rounded-lg"
+            title={category.tooltip}
+          >
+            <h2 className="text-xl font-semibold mb-2">{category.label}</h2>
+            <div className="flex flex-wrap gap-2">
+              {category.keywords.map((keyword) => (
+                <span 
+                  key={keyword}
+                  className="bg-gray-700 px-2 py-1 rounded text-sm"
+                >
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default Reverberate;
