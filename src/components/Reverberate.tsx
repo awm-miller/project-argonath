@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Loader2, X, HelpCircle, ChevronRight, AlertTriangle, CheckCircle, Search } from 'lucide-react';
+import { Download, Loader2, X, HelpCircle, ChevronRight, AlertTriangle, CheckCircle, Search, Info } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
@@ -49,38 +49,45 @@ interface Category {
   id: string;
   label: string;
   keywords: string[];
+  tooltip: string;
 }
 
 const categories: Category[] = [
   {
     id: 'antisemite',
     label: 'Antisemite',
-    keywords: [] // Backend will handle the actual keywords
+    keywords: ['Jews', 'Zionists', 'Zios', 'Jewish', 'Holocaust'],
+    tooltip: 'Searches for: Jews, Zionists, Zios, Jewish, Holocaust'
   },
   {
     id: 'anti-israel',
     label: 'Anti-Israel',
-    keywords: []
+    keywords: ['Hamas', 'Bibi', 'Netanyahu', 'Genocide', 'Gaza'],
+    tooltip: 'Searches for: Hamas, Bibi, Netanyahu, Genocide, Gaza'
   },
   {
     id: 'criminal',
     label: 'Criminal',
-    keywords: []
+    keywords: ['Arrest', 'Convicted', 'Prison', 'Jail', 'Crime'],
+    tooltip: 'Searches for: Arrest, Convicted, Prison, Jail, Crime'
   },
   {
     id: 'far-left',
     label: 'Far Left',
-    keywords: []
+    keywords: ['Communist', 'Marxist', 'Socialist', 'Revolution', 'Radical'],
+    tooltip: 'Searches for: Communist, Marxist, Socialist, Revolution, Radical'
   },
   {
     id: 'far-right',
     label: 'Far Right',
-    keywords: []
+    keywords: ['Nationalist', 'Fascist', 'Nazi', 'White supremacy', 'Alt-right'],
+    tooltip: 'Searches for: Nationalist, Fascist, Nazi, White supremacy, Alt-right'
   },
   {
     id: 'sexual',
     label: 'Sexual',
-    keywords: []
+    keywords: ['Harassment', 'Assault', 'Abuse', 'Misconduct', 'Inappropriate'],
+    tooltip: 'Searches for: Harassment, Assault, Abuse, Misconduct, Inappropriate'
   }
 ];
 
@@ -92,6 +99,7 @@ function Reverberate() {
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   
   const [jobId, setJobId] = useState<string | null>(null);
   const [pollInterval, setPollInterval] = useState<number | null>(null);
@@ -541,19 +549,31 @@ function Reverberate() {
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {categories.map(category => (
-                <label
+                <div
                   key={category.id}
-                  className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                  className="relative"
+                  onMouseEnter={() => setHoveredCategory(category.id)}
+                  onMouseLeave={() => setHoveredCategory(null)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category.id)}
-                    onChange={() => toggleCategory(category.id)}
-                    disabled={processing}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{category.label}</span>
-                </label>
+                  <label
+                    className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(category.id)}
+                      onChange={() => toggleCategory(category.id)}
+                      disabled={processing}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{category.label}</span>
+                    <Info className="w-4 h-4 text-gray-400" />
+                  </label>
+                  {hoveredCategory === category.id && (
+                    <div className="absolute z-10 w-48 p-2 mt-1 text-sm bg-gray-900 text-white rounded shadow-lg">
+                      {category.tooltip}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -580,7 +600,7 @@ function Reverberate() {
               {!processing && !downloadUrl && (
                 <button
                   onClick={handleSubmit}
-                  className="w-full px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   <Search className="w-5 h-5 mr-2" />
                   Process Names
