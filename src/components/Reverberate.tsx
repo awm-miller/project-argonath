@@ -36,3 +36,5 @@ const categories: Category[] = [
     tooltip: 'Identifies records of sexual misconduct, harassment, or abuse allegations'
   }
 ];
+
+export default categories
