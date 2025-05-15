@@ -508,13 +508,15 @@ function Reverberate() {
               </span>
             )}
           </div>
-          <button
-            onClick={resetForm}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            disabled={processing && !downloadUrl}
-          >
-            Reset
-          </button>
+          {(names || selectedCategories.length > 0 || processing) && (
+            <button
+              onClick={resetForm}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              disabled={processing && !downloadUrl}
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         <div className="space-y-6">
