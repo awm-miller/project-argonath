@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Loader2, X, HelpCircle, ChevronRight, AlertTriangle, CheckCircle, Search, Info } from 'lucide-react';
+import { Download, Loader2, X, Plus, Minus, HelpCircle, ChevronRight, AlertTriangle, CheckCircle, Search, Info } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
@@ -114,6 +114,7 @@ function Reverberate() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [customKeywords, setCustomKeywords] = useState<string[]>(['']);
 
   useEffect(() => {
     return () => {
@@ -150,6 +151,22 @@ function Reverberate() {
         ? prev.filter(id => id !== categoryId)
         : [...prev, categoryId]
     );
+  };
+
+  const handleAddKeyword = () => {
+    if (customKeywords.length < 10) {
+      setCustomKeywords([...customKeywords, '']);
+    }
+  };
+
+  const handleRemoveKeyword = (index: number) => {
+    setCustomKeywords(customKeywords.filter((_, i) => i !== index));
+  };
+
+  const handleKeywordChange = (index: number, value: string) => {
+    const newKeywords = [...customKeywords];
+    newKeywords[index] = value;
+    setCustomKeywords(newKeywords);
   };
 
   const downloadResults = async () => {
@@ -328,8 +345,8 @@ function Reverberate() {
       return false;
     }
 
-    if (selectedCategories.length === 0) {
-      setError('Please select at least one category');
+    if (selectedCategories.length === 0 && customKeywords.every(k => !k.trim())) {
+      setError('Please select at least one category or add a custom keyword');
       return false;
     }
 
@@ -383,6 +400,7 @@ function Reverberate() {
       const formData = new FormData();
       formData.append('names', names);
       formData.append('categories', JSON.stringify(selectedCategories));
+      formData.append('customKeywords', JSON.stringify(customKeywords.filter(k => k.trim())));
 
       const submitOptions = {
         ...fetchOptions,
@@ -586,6 +604,45 @@ function Reverberate() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Custom Keywords (max 10)
+              </label>
+              {customKeywords.length < 10 && (
+                <button
+                  onClick={handleAddKeyword}
+                  className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                  disabled={processing}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Keyword
+                </button>
+              )}
+            </div>
+            {customKeywords.map((keyword, index) => (
+              <div key={index} className="flex gap-2">
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => handleKeywordChange(index, e.target.value)}
+                  placeholder={`Custom keyword ${index + 1}`}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                  disabled={processing}
+                />
+                {customKeywords.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveKeyword(index)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2"
+                    disabled={processing}
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
           {error && (
