@@ -57,37 +57,37 @@ const categories: Category[] = [
     id: 'antisemite',
     label: 'Antisemite',
     keywords: ['Jews', 'Zionists', 'Zios', 'Jewish', 'Holocaust'],
-    tooltip: 'Searches for: Jews, Zionists, Zios, Jewish, Holocaust'
+    tooltip: 'Searches for antisemitism-related concerns'
   },
   {
     id: 'anti-israel',
     label: 'Anti-Israel',
     keywords: ['Hamas', 'Bibi', 'Netanyahu', 'Genocide', 'Gaza'],
-    tooltip: 'Searches for: Hamas, Bibi, Netanyahu, Genocide, Gaza'
+    tooltip: 'Searches for anti-Israel views and concerns'
   },
   {
     id: 'criminal',
     label: 'Criminal',
     keywords: ['Arrest', 'Convicted', 'Prison', 'Jail', 'Crime'],
-    tooltip: 'Searches for: Arrest, Convicted, Prison, Jail, Crime'
+    tooltip: 'Searches for potential criminal concerns'
   },
   {
     id: 'far-left',
     label: 'Far Left',
     keywords: ['Communist', 'Marxist', 'Socialist', 'Revolution', 'Radical'],
-    tooltip: 'Searches for: Communist, Marxist, Socialist, Revolution, Radical'
+    tooltip: 'Searches for evidence of links to the far left'
   },
   {
     id: 'far-right',
     label: 'Far Right',
     keywords: ['Nationalist', 'Fascist', 'Nazi', 'White supremacy', 'Alt-right'],
-    tooltip: 'Searches for: Nationalist, Fascist, Nazi, White supremacy, Alt-right'
+    tooltip: 'Searches for evidence of links to the far right'
   },
   {
     id: 'sexual',
     label: 'Sexual',
     keywords: ['Harassment', 'Assault', 'Abuse', 'Misconduct', 'Inappropriate'],
-    tooltip: 'Searches for: Harassment, Assault, Abuse, Misconduct, Inappropriate'
+    tooltip: 'Searches for allegations of inappropriate sxual behaviour'
   }
 ];
 
