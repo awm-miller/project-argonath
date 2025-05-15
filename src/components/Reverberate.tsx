@@ -171,35 +171,6 @@ function Reverberate() {
     setCustomKeywords(newKeywords);
   };
 
-  const downloadResults = async () => {
-    if (!downloadUrl) return;
-    window.location.href = `${API_BASE_URL}${downloadUrl}`;
-  };
-
-  const downloadAnalysisResults = async () => {
-    if (!analysisJobId || analysisStatus !== 'completed') return;
-    window.location.href = `${API_BASE_URL}/reverberate/analysis/download/${analysisJobId}`;
-  };
-
-  const fetchAnalysisResults = async () => {
-    if (!analysisJobId || analysisStatus !== 'completed') return;
-    
-    try {
-      const viewUrl = `${API_BASE_URL}/reverberate/analysis/view/${analysisJobId}`;
-      const response = await fetch(viewUrl, fetchOptions);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch analysis results: ${response.status} ${response.statusText}`);
-      }
-      
-      const result: AnalysisResult = await response.json();
-      setAnalysisResult(result);
-    } catch (err) {
-      console.error("Analysis fetch error:", err);
-      setAnalysisError(err instanceof Error ? err.message : "Failed to fetch analysis results");
-    }
-  };
-
   const checkJobStatus = async (id: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/reverberate/status/${id}`, fetchOptions);
@@ -221,18 +192,15 @@ function Reverberate() {
         case 'completed':
           if (data.download_url) {
             setProgress('Complete!');
-            setStatusMessage('Processing complete! Download your results or run AI analysis.');
+            setStatusMessage('Reverberation complete! Starting AI analysis...');
             setDownloadUrl(data.download_url);
             if (pollInterval) {
               clearInterval(pollInterval);
               setPollInterval(null);
             }
-            setProcessing(false);
             // Automatically start AI analysis
-            setStatusMessage('Reverberation complete! Starting AI analysis...');
             setProgress('Initiating AI Analysis...');
-            // Note: setProcessing(true) should remain or be re-asserted by handleStartAnalysis
-            handleStartAnalysis(id); // Pass the original job ID
+            handleStartAnalysis(id);
           } else {
             setProgress('No Results');
             setStatusMessage('Processing complete, but no results were found.');
@@ -301,7 +269,7 @@ function Reverberate() {
             }
           }
           setShowAnalysis(true);
-          setProcessing(false); // Stop main loader once analysis is also complete
+          setProcessing(false);
           break;
         case 'failed':
           if (analysisPollInterval) {
@@ -310,6 +278,7 @@ function Reverberate() {
           }
           setAnalysisProgress('Analysis failed');
           setAnalysisError(data.error || 'An unknown error occurred during analysis');
+          setProcessing(false);
           break;
       }
     } catch (err) {
@@ -320,6 +289,7 @@ function Reverberate() {
         clearInterval(analysisPollInterval);
         setAnalysisPollInterval(null);
       }
+      setProcessing(false);
     }
   };
 
@@ -341,60 +311,78 @@ function Reverberate() {
     checkAnalysisJobStatus(id);
   };
 
-  const validateInput = () => {
-    if (!names.trim()) {
+  const fetchAnalysisResults = async () => {
+    if (!analysisJobId || analysisStatus !== 'completed') return;
+    
+    try {
+      const viewUrl = `${API_BASE_URL}/reverberate/analysis/view/${analysisJobId}`;
+      const response = await fetch(viewUrl, fetchOptions);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch analysis results: ${response.status} ${response.statusText}`);
+      }
+      
+      const result: AnalysisResult = await response.json();
+      setAnalysisResult(result);
+    } catch (err) {
+      console.error("Analysis fetch error:", err);
+      setAnalysisError(err instanceof Error ? err.message : "Failed to fetch analysis results");
+    }
+  };
+
+  const handleStartAnalysis = async (jobId: string) => {
+    if (!jobId) {
+      setAnalysisError('No completed job available to analyze');
+      return;
+    }
+
+    setAnalysisError(null);
+    setAnalysisProgress('Submitting analysis job...');
+    
+    setProcessing(true);
+    setStatusMessage('AI Analysis is in progress...');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/reverberate/analyze/${jobId}`, {
+        ...fetchOptions,
+        method: 'POST',
+      });
+
+      if (response.status === 202) {
+        const data = await response.json();
+        setAnalysisJobId(data.analysis_job_id);
+        startAnalysisPolling(data.analysis_job_id);
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Failed to start analysis: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+    } catch (err) {
+      console.error("Analysis submission error:", err);
+      setAnalysisError(err instanceof Error ? err.message : 'An error occurred');
+      setAnalysisProgress('Error submitting analysis job.');
+      setProcessing(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!names || !names.trim()) {
       setError('Please enter at least one name');
-      return false;
+      return;
     }
 
     const nameList = names.split(',').map(name => name.trim());
     if (nameList.some(name => !name)) {
       setError('Invalid name format. Please check your input');
-      return false;
+      return;
     }
 
     if (selectedCategories.length === 0 && customKeywords.every(k => !k.trim())) {
       setError('Please select at least one category or add a custom keyword');
-      return false;
+      return;
     }
 
     if (!user?.email) {
       setError('You must be logged in to use this feature');
-      return false;
-    }
-
-    return true;
-  };
-
-  const resetForm = () => {
-    setNames('');
-    setSelectedCategories([]);
-    setProcessing(false);
-    setStatusMessage('');
-    setError(null);
-    setShowHelp(false);
-    setJobId(null);
-    setDownloadUrl(null);
-    setProgress('');
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      setPollInterval(null);
-    }
-    
-    setAnalysisJobId(null);
-    setAnalysisStatus(null);
-    setAnalysisProgress('');
-    setAnalysisError(null);
-    setAnalysisResult(null);
-    setShowAnalysis(false);
-    if (analysisPollInterval) {
-      clearInterval(analysisPollInterval);
-      setAnalysisPollInterval(null);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!validateInput()) {
       return;
     }
 
@@ -416,7 +404,7 @@ function Reverberate() {
         body: formData,
       };
 
-      const response = await fetch(`${API_BASE_URL}/reverberate/`, submitOptions);
+      const response = await fetch(`${API_BASE_URL}/reverberate`, submitOptions);
 
       if (response.status === 202) {
         const data = await response.json();
@@ -444,36 +432,31 @@ function Reverberate() {
     }
   };
 
-  const handleStartAnalysis = async () => {
-    if (!jobId || !downloadUrl) {
-      setAnalysisError('No completed job available to analyze');
-      return;
+  const resetForm = () => {
+    setNames('');
+    setSelectedCategories([]);
+    setCustomKeywords(['']);
+    setProcessing(false);
+    setStatusMessage('');
+    setError(null);
+    setShowHelp(false);
+    setJobId(null);
+    setDownloadUrl(null);
+    setProgress('');
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      setPollInterval(null);
     }
-
-    setAnalysisError(null);
-    setAnalysisProgress('Submitting analysis job...');
     
-    setProcessing(true); // Ensure main loader remains active during analysis submission and polling
-    setStatusMessage('AI Analysis is in progress...'); // Update overall status
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/reverberate/analyze/${jobId}`, {
-        ...fetchOptions,
-        method: 'POST',
-      });
-
-      if (response.status === 202) {
-        const data = await response.json();
-        setAnalysisJobId(data.analysis_job_id);
-        startAnalysisPolling(data.analysis_job_id);
-      } else {
-        const errorText = await response.text();
-        throw new Error(`Failed to start analysis: ${response.status} ${response.statusText}. ${errorText}`);
-      }
-    } catch (err) {
-      console.error("Analysis submission error:", err);
-      setAnalysisError(err instanceof Error ? err.message : 'An error occurred');
-      setAnalysisProgress('Error submitting analysis job.');
+    setAnalysisJobId(null);
+    setAnalysisStatus(null);
+    setAnalysisProgress('');
+    setAnalysisError(null);
+    setAnalysisResult(null);
+    setShowAnalysis(false);
+    if (analysisPollInterval) {
+      clearInterval(analysisPollInterval);
+      setAnalysisPollInterval(null);
     }
   };
 
@@ -552,8 +535,6 @@ function Reverberate() {
             </div>
           </div>
         )}
-        
-        {/* Download button removed as per request */}
       </div>
     );
   };
@@ -572,6 +553,15 @@ function Reverberate() {
               </span>
             )}
           </div>
+          {(names || jobId || error || downloadUrl) && (
+            <button
+              onClick={resetForm}
+              className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
+              disabled={processing && !downloadUrl}
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -680,10 +670,10 @@ function Reverberate() {
 
           <div className="flex flex-col md:flex-row gap-4 items-start">
             <div className="flex-1 w-full">
-              {processing && !downloadUrl && !error && (
+              {processing && !error && (
                 <div className="flex justify-center items-center h-12">
                   <DotLottieReact
-                    src="https://lottie.host/2b4bf80c-5198-4240-b65d-1449b2cb3eb9/XBMTs9wqjt.lottie"
+                    src={analysisJobId ? "https://lottie.host/8c2cd1b3-4156-40a5-a8e1-48642a7e3be0/0jDm14ND1X.lottie" : "https://lottie.host/2b4bf80c-5198-4240-b65d-1449b2cb3eb9/XBMTs9wqjt.lottie"}
                     loop
                     autoplay
                     style={{ width: '500px', height: '500px' }}
@@ -701,62 +691,27 @@ function Reverberate() {
                 </button>
               )}
             </div>
-            
-            {downloadUrl && (
-              <div className="flex flex-col gap-3 md:w-auto w-full">
-                <button
-                  onClick={downloadResults}
-                  className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-600 flex items-center justify-center whitespace-nowrap"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Download Results
-                </button>
-                
-                {!analysisJobId && (
-                  <button
-                    onClick={handleStartAnalysis}
-                    className="px-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 flex items-center justify-center whitespace-nowrap"
-                  >
-                    <Search className="w-5 h-5 mr-2" />
-                    Run AI Analysis
-                  </button>
-                )}
-              </div>
-            )}
           </div>
-          
-          {analysisJobId && analysisProgress && (
-            <>
-              {analysisStatus !== 'completed' && !analysisError && (
-                <div className="flex justify-center items-center h-12 mt-4">
-                  <DotLottieReact
-                    src="https://lottie.host/8c2cd1b3-4156-40a5-a8e1-48642a7e3be0/0jDm14ND1X.lottie"
-                    loop
-                    autoplay
-                    style={{ width: '500px', height: '500px' }}
-                  />
-                </div>
-              )}
 
-              {analysisStatus === 'completed' && !analysisError && (
-                 <div className="mt-4 p-4 rounded-lg border bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-800 text-green-700 dark:text-green-200">
-                   <div className="flex items-center">
-                     <CheckCircle className="w-5 h-5 mr-2" />
-                     <span>{analysisProgress}</span>
-                   </div>
-                 </div>
-              )}
-
-              {analysisError && (
-                 <div className="mt-4 p-4 rounded-lg border bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-200">
-                   <div className="flex items-center">
-                     <AlertTriangle className="w-5 h-5 mr-2" />
-                     <span>{analysisProgress}</span>
-                   </div>
-                   <p className="mt-2 text-red-700 dark:text-red-300">{analysisError}</p>
-                 </div>
-              )}
-            </>
+          {statusMessage && (
+            <div
+              className={`mt-4 p-4 rounded-lg border ${
+                error
+                  ? 'bg-red-900/50 border-red-800 text-red-200'
+                  : downloadUrl
+                  ? 'bg-green-900/50 border-green-800 text-green-200'
+                  : 'bg-blue-900/50 border-blue-800 text-blue-200'
+              }`}
+            >
+              <div className="flex items-center">
+                {processing && !error && (
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                )}
+                {error && <X className="w-5 h-5 mr-2" />}
+                {!processing && !error && <CheckCircle className="w-5 h-5 mr-2" />}
+                <span>{statusMessage}</span>
+              </div>
+            </div>
           )}
 
           {showHelp && (
@@ -784,6 +739,7 @@ function Reverberate() {
                 </div>
               </div>
             </div>
+          
           )}
         </div>
       </div>
