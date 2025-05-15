@@ -20,9 +20,12 @@ interface JobStatus {
   error?: string;
 }
 
-interface PersonSummary {
+interface PersonReport {
   subject: string;
-  summary: string;
+  overall_summary: string;
+  categories: {
+    [key: string]: string;
+  };
 }
 
 interface AnalysisJobStatus {
@@ -38,10 +41,9 @@ interface AnalysisResult {
     job_id: string;
     original_job_id: string;
     processed_at: string;
-    chunks_processed: number;
-    total_files_analyzed: number;
+    names_processed: number;
   };
-  person_summaries: PersonSummary[];
+  people: PersonReport[];
   errors: string[];
 }
 
@@ -469,7 +471,7 @@ function Reverberate() {
   const renderAnalysisResults = () => {
     if (!analysisResult) return null;
 
-    const { person_summaries, errors, meta } = analysisResult;
+    const { people, errors, meta } = analysisResult;
     
     return (
       <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -477,21 +479,46 @@ function Reverberate() {
         
         {meta && (
           <div className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-            <p>Analyzed {meta.total_files_analyzed} files across {meta.chunks_processed} chunks</p>
+            <p>Analyzed {meta.names_processed} names</p>
             <p>Processed at: {new Date(meta.processed_at).toLocaleString()}</p>
           </div>
         )}
         
-        {person_summaries && person_summaries.length > 0 ? (
+        {people && people.length > 0 ? (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Person Summaries</h3>
             <div className="space-y-4">
-              {person_summaries.map((personSummary, index) => (
+              {people.map((personReport, index) => (
                 <div key={index} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">{personSummary.subject}</h4>
-                  <p className={`text-gray-700 dark:text-gray-300 mb-2 ${personSummary.summary.includes('No compromising') ? 'italic' : ''}`}>
-                    {personSummary.summary}
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">{personReport.subject}</h4>
+                  <p className={`text-gray-700 dark:text-gray-300 mb-4 ${personReport.overall_summary.includes('No compromising') ? 'italic' : ''}`}>
+                    {personReport.overall_summary}
                   </p>
+
+                  {personReport.categories && Object.keys(personReport.categories).length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            {Object.keys(personReport.categories).map((catKey, idx) => (
+                              <th key={idx} className="px-3 py-2 font-semibold border border-gray-200 dark:border-gray-600 capitalize">
+                                {catKey.replace(/_/g, ' ')}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            {Object.entries(personReport.categories).map(([catKey, catSummary], idx) => (
+                              <td key={idx} className="px-3 py-2 border border-gray-200 dark:border-gray-600">
+                                {catSummary.includes('No compromising') ? <em>{catSummary}</em> : catSummary}
+                              </td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
