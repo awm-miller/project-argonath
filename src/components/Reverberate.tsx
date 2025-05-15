@@ -62,7 +62,6 @@ function Reverberate() {
   
   // Original reverberate job state
   const [jobId, setJobId] = useState<string | null>(null);
-  // Fix linter error: Use `number` for setInterval return type in browsers
   const [pollInterval, setPollInterval] = useState<number | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
@@ -70,7 +69,6 @@ function Reverberate() {
   // Analysis job state
   const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
-  // Fix linter error: Use `number` for setInterval return type in browsers
   const [analysisPollInterval, setAnalysisPollInterval] = useState<number | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<string>('');
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -162,6 +160,7 @@ function Reverberate() {
               clearInterval(pollInterval);
               setPollInterval(null);
             }
+            setProcessing(false);
           } else {
             setProgress('No Results');
             setStatusMessage('Processing complete, but no results were found.');
@@ -225,21 +224,13 @@ function Reverberate() {
             setAnalysisResult(data.results);
           } else {
             // If results aren't in the status response, try fetching them separately
-            // This covers cases where the status might update slightly before results are attached
-            // We might already have results from a previous poll, so check first
             if (!analysisResult) {
-              fetchAnalysisResults(); // Attempt to fetch if not already set
-              // If fetchAnalysisResults is async and might error, consider setting a fallback error
-              // setAnalysisError('Analysis completed but results could not be loaded immediately.');
-            } else {
-               // We already have the results, likely from a previous poll
-               // Frontend state is likely already updated by setAnalysisResult
+              await fetchAnalysisResults();
             }
-             // Fallback error if results are persistently missing after fetch attempt fails silently
-             // This might indicate an issue fetching or results truly missing
-             if (!analysisResult && !data.results) { 
-               setAnalysisError('Analysis completed but no results were returned or could be fetched.');
-             }
+            // Fallback error if results are persistently missing
+            if (!analysisResult && !data.results) {
+              setAnalysisError('Analysis completed but no results were returned or could be fetched.');
+            }
           }
           setShowAnalysis(true);
           break;
@@ -257,7 +248,6 @@ function Reverberate() {
       console.error("Analysis status check error:", err);
       setAnalysisError(err instanceof Error ? err.message : 'Failed to check analysis status');
       setAnalysisProgress('Error');
-      // Also clear interval on fetch error
       if (analysisPollInterval) {
         clearInterval(analysisPollInterval);
         setAnalysisPollInterval(null);
@@ -272,7 +262,7 @@ function Reverberate() {
     }
     
     // Start polling every 30 seconds
-    const interval = setInterval(() => checkJobStatus(id), 30000);
+    const interval = window.setInterval(() => checkJobStatus(id), 30000);
     setPollInterval(interval);
     
     // Do an immediate check
@@ -286,7 +276,7 @@ function Reverberate() {
     }
     
     // Start polling every 30 seconds
-    const interval = setInterval(() => checkAnalysisJobStatus(id), 30000);
+    const interval = window.setInterval(() => checkAnalysisJobStatus(id), 30000);
     setAnalysisPollInterval(interval);
     
     // Do an immediate check
