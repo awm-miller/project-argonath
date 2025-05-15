@@ -132,7 +132,7 @@ function Reverberate() {
   const handleMouseEnter = (categoryId: string) => {
     const timer = setTimeout(() => {
       setHoveredCategory(categoryId);
-    }, 3000); // 3 seconds delay
+    }, 1000); // 3 seconds delay
     setTooltipTimer(timer);
   };
 
