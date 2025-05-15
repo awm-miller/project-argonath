@@ -262,10 +262,7 @@ function Reverberate() {
             setAnalysisResult(data.results);
           } else {
             if (!analysisResult) {
-              await fetchAnalysisResults();
-            }
-            if (!analysisResult && !data.results) {
-              setAnalysisError('Analysis completed but no results were returned or could be fetched.');
+              setAnalysisError('Analysis completed, but results were not found in the status payload.');
             }
           }
           setShowAnalysis(true);
@@ -309,25 +306,6 @@ function Reverberate() {
     const interval = window.setInterval(() => checkAnalysisJobStatus(id), 30000);
     setAnalysisPollInterval(interval);
     checkAnalysisJobStatus(id);
-  };
-
-  const fetchAnalysisResults = async () => {
-    if (!analysisJobId || analysisStatus !== 'completed') return;
-    
-    try {
-      const viewUrl = `${API_BASE_URL}/reverberate/analysis/view/${analysisJobId}`;
-      const response = await fetch(viewUrl, fetchOptions);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch analysis results: ${response.status} ${response.statusText}`);
-      }
-      
-      const result: AnalysisResult = await response.json();
-      setAnalysisResult(result);
-    } catch (err) {
-      console.error("Analysis fetch error:", err);
-      setAnalysisError(err instanceof Error ? err.message : "Failed to fetch analysis results");
-    }
   };
 
   const handleStartAnalysis = async (jobId: string) => {
