@@ -367,7 +367,7 @@ function Reverberate() {
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Reverberate</h1>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 px-6 pb-6 pt-2">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 px-6 pb-6 pt-1">
         <div className="flex justify-between items-center mb-4">
             <div className="text-sm text-gray-500 dark:text-gray-400 min-h-[20px]">
                  {/* Status Message Area - managed by statusMessage state */} 
@@ -469,7 +469,7 @@ function Reverberate() {
       {/* Global styles for input to avoid repetition - ideally in a CSS file or styled-components */} 
       <style jsx global>{`
         .input-class {
-          @apply px-3 py-2 border-2 border-gray-300 dark:border-gray-500 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:ring-2 dark:focus:ring-offset-gray-800 dark:focus:ring-blue-500/70;
+          @apply px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:focus:ring-blue-500 dark:focus:border-transparent;
         }
       `}</style>
     </div>
