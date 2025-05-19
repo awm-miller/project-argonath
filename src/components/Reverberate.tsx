@@ -358,24 +358,7 @@ function Reverberate() {
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Reverberate</h1>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 px-6 pb-6 pt-1">
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400 min-h-[20px]">
-            {processing && statusMessage && (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> 
-                {statusMessage}
-              </span>
-            )}
-            {!processing && statusMessage && (
-              <span className={`flex items-center gap-2 ${errorMessage ? 'text-red-500' : currentJobStatus?.status === 'completed' ? 'text-green-500' : ''}`}>
-                {errorMessage ? <AlertTriangle className="w-4 h-4" /> : currentJobStatus?.status === 'completed' ? <CheckCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
-                {statusMessage}
-              </span>
-            )}
-          </div>
-        </div>
-
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         {!jobId || currentJobStatus?.status === 'failed' || currentJobStatus?.status === 'completed' ? (
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
             <div>
