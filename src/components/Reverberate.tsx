@@ -136,7 +136,7 @@ function Reverberate() {
         detailedProgress = `AI analyzing target: ${data.current_person_analyzing}`;
       }
       setProgressMessage(detailedProgress);
-
+      
       switch (data.status) {
         case 'pending':
         case 'processing':
@@ -147,15 +147,15 @@ function Reverberate() {
           setStatusMessage('Job complete! Report generated.');
           setErrorMessage(data.error || null); // Show minor errors if any (e.g. some AI errors)
           if (pollInterval) clearInterval(pollInterval);
-          setPollInterval(null);
-          setProcessing(false);
+              setPollInterval(null);
+            setProcessing(false);
           setShowFullReport(true); // Automatically show the report
           break;
         case 'failed':
           setStatusMessage('Job failed.');
           setErrorMessage(data.error || 'An unknown error occurred.');
           if (pollInterval) clearInterval(pollInterval);
-          setPollInterval(null);
+            setPollInterval(null);
           setProcessing(false);
           break;
       }
@@ -254,7 +254,7 @@ function Reverberate() {
       </div>
     );
   };
-  
+
   const renderAnalysisResults = () => {
     const analysisResult = currentJobStatus?.results;
     if (!showFullReport || !analysisResult) return null;
@@ -265,42 +265,35 @@ function Reverberate() {
       <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI Analysis Report</h2>
-            <button 
-                onClick={() => setShowFullReport(false)} 
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            >
-                Hide Report
-            </button>
         </div>
         
         {meta && (
           <div className="mb-6 text-sm text-gray-500 dark:text-gray-400">
             <p>Analyzed {meta.names_processed} names. Generated {meta.reports_generated} reports.</p>
             <p>Processed at: {new Date(meta.processed_at).toLocaleString()}</p>
-            <p>Job ID: {meta.job_id}</p>
           </div>
         )}
         
-        {currentJobStatus?.raw_results_zip_path && (
-            <div className="my-4">
-                <a 
-                    href={`${API_BASE_URL}/reverberate/downloadzip/${currentJobStatus.job_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                    <Download className="w-4 h-4 mr-2" /> Download Raw Search Data (Zip)
-                </a>
-            </div>
-        )}
-
         {people && people.length > 0 ? (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Person Summaries</h3>
             <div className="space-y-4">
               {people.map((personReport, index) => (
                 <div key={index} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">{personReport.subject}</h4>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{personReport.subject}</h4>
+                    {currentJobStatus?.raw_results_zip_path && (
+                        <a 
+                            href={`${API_BASE_URL}/reverberate/downloadzip/${currentJobStatus.job_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Download Raw Search Data (Zip)"
+                            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        >
+                            <Download className="w-4 h-4" />
+                        </a>
+                    )}
+                  </div>
                   <p className={`text-gray-700 dark:text-gray-300 mb-4 ${personReport.overall_summary.includes('No compromising') || personReport.no_data_found ? 'italic' : ''}`}>
                     {personReport.overall_summary}
                   </p>
@@ -364,7 +357,7 @@ function Reverberate() {
                 ))}
               </ul>
             </div>
-          </div>
+        </div>
         )}
       </div>
     );
@@ -379,7 +372,7 @@ function Reverberate() {
             <div className="text-sm text-gray-500 dark:text-gray-400 min-h-[20px]">
                  {/* Status Message Area - managed by statusMessage state */} 
                  {processing && statusMessage && (
-                     <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" /> 
                         {statusMessage}
                      </span>
@@ -388,29 +381,20 @@ function Reverberate() {
                      <span className={`flex items-center gap-2 ${errorMessage ? 'text-red-500' : currentJobStatus?.status === 'completed' ? 'text-green-500' : ''}`}>
                         {errorMessage ? <AlertTriangle className="w-4 h-4" /> : currentJobStatus?.status === 'completed' ? <CheckCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
                         {statusMessage}
-                     </span>
-                 )}
-            </div>
-            {(jobId || errorMessage) && (
-                <button
-                onClick={() => resetFormState(true)}
-                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
-                disabled={processing}
-                >
-                Reset All
-                </button>
+              </span>
             )}
+          </div>
         </div>
 
         {!jobId || currentJobStatus?.status === 'failed' || currentJobStatus?.status === 'completed' ? (
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
-            <div>
-                <div className="flex items-center gap-2 mb-1">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
                 <label htmlFor="names-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Names</label>
                 <button type="button" onClick={() => setShowHelp(!showHelp)} className="text-gray-400 hover:text-gray-600" aria-label="Show input format help">
-                    <HelpCircle className="w-4 h-4" />
-                </button>
-                </div>
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            </div>
                 <textarea id="names-input" value={names} onChange={(e) => setNames(e.target.value)} placeholder="Enter names, one per line or separated by commas" rows={3} className="w-full input-class" disabled={processing} />
                 {showHelp && (
                     <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md text-xs text-blue-700 dark:text-blue-300">
@@ -422,54 +406,54 @@ function Reverberate() {
                         </ul>
                     </div>
                 )}
-            </div>
+          </div>
 
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categories</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {categories.map(category => (
+              {categories.map(category => (
                     <div key={category.id} className="relative" onMouseEnter={() => handleMouseEnter(category.id)} onMouseLeave={handleMouseLeave}>
                     <label className="flex items-center space-x-2 p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
                         <input type="checkbox" checked={selectedCategories.includes(category.id)} onChange={() => toggleCategory(category.id)} disabled={processing} className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
                         <span className="text-sm text-gray-700 dark:text-gray-300 flex-grow truncate">{category.label}</span>
                         <Info className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    </label>
+                  </label>
                     {hoveredCategory === category.id && <div className="absolute z-20 w-52 p-2 mt-1 text-xs bg-gray-800 text-white rounded shadow-lg" role="tooltip">{category.tooltip}</div>}
                     </div>
                 ))}
-                </div>
             </div>
+          </div>
 
             <div className="space-y-3">
-                <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Custom Keywords (max 10)</label>
-                {customKeywords.length < 10 && (
+              {customKeywords.length < 10 && (
                     <button type="button" onClick={handleAddKeyword} className="flex items-center text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" disabled={processing}>
                     <Plus className="w-4 h-4 mr-1" /> Add
-                    </button>
-                )}
-                </div>
-                {customKeywords.map((keyword, index) => (
+                </button>
+              )}
+            </div>
+            {customKeywords.map((keyword, index) => (
                 <div key={index} className="flex gap-2 items-center">
                     <input type="text" value={keyword} onChange={(e) => handleKeywordChange(index, e.target.value)} placeholder={`Custom keyword ${index + 1}`} className="flex-1 input-class" disabled={processing} />
-                    {customKeywords.length > 1 && (
+                {customKeywords.length > 1 && (
                     <button type="button" onClick={() => handleRemoveKeyword(index)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1.5" disabled={processing} aria-label="Remove keyword">
                         <Minus className="w-4 h-4" />
-                    </button>
-                    )}
-                </div>
-                ))}
-            </div>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
 
             {errorMessage && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/50 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-200 text-sm">
                 <AlertTriangle className="w-5 h-5 inline mr-2" /> {errorMessage}
                 </div>
-            )}
+              )}
 
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center text-base font-medium" disabled={processing}>
                 <Search className="w-5 h-5 mr-2" /> Process Names
-            </button>
+                </button>
             </form>
         ) : (
             renderLottieAnimation()
