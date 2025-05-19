@@ -87,7 +87,7 @@ function Reverberate() {
   
   const [showHelp, setShowHelp] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-  const [tooltipTimer, setTooltipTimer] = useState<NodeJS.Timeout | null>(null);
+  const [tooltipTimer, setTooltipTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showFullReport, setShowFullReport] = useState(false);
 
   useEffect(() => {
@@ -367,7 +367,7 @@ function Reverberate() {
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Reverberate</h1>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 px-6 pb-6 pt-2">
         <div className="flex justify-between items-center mb-4">
             <div className="text-sm text-gray-500 dark:text-gray-400 min-h-[20px]">
                  {/* Status Message Area - managed by statusMessage state */} 
@@ -451,9 +451,13 @@ function Reverberate() {
                 </div>
               )}
 
-            <button type="submit" className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center text-base font-medium" disabled={processing}>
+            <button 
+                type="submit" 
+                className="w-full px-4 py-2.5 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-base font-medium transition-colors duration-150 ease-in-out"
+                disabled={processing}
+            >
                 <Search className="w-5 h-5 mr-2" /> Process Names
-                </button>
+            </button>
             </form>
         ) : (
             renderLottieAnimation()
@@ -465,7 +469,7 @@ function Reverberate() {
       {/* Global styles for input to avoid repetition - ideally in a CSS file or styled-components */} 
       <style jsx global>{`
         .input-class {
-          @apply px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors;
+          @apply px-3 py-2 border-2 border-gray-300 dark:border-gray-500 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:ring-2 dark:focus:ring-offset-gray-800 dark:focus:ring-blue-500/70;
         }
       `}</style>
     </div>
