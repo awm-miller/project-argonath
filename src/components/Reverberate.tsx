@@ -131,9 +131,9 @@ function Reverberate() {
 
       let detailedProgress = '';
       if (data.stage === 'reverberating' && data.current_person_reverberating) {
-        detailedProgress = `Searching for: ${data.current_person_reverberating}`;
+        detailedProgress = `Searching target: ${data.current_person_reverberating}`;
       } else if (data.stage === 'analyzing' && data.current_person_analyzing) {
-        detailedProgress = `AI analyzing: ${data.current_person_analyzing}`;
+        detailedProgress = `AI analyzing target: ${data.current_person_analyzing}`;
       }
       setProgressMessage(detailedProgress);
 
